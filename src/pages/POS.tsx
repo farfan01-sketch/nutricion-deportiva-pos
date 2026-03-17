@@ -155,7 +155,10 @@ const POS: React.FC<POSProps> = ({ user }) => {
       setShowTicket(true);
       loadInitialData(); // Refresh stock and shift
     } catch (err: any) {
+      console.error(err);
       alert(err.message || 'Error al procesar la venta');
+    } finally {
+      setLoading(false);
     }
   };
 
