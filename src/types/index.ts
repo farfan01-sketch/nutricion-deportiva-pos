@@ -94,6 +94,8 @@ export interface Shift {
   status: 'open' | 'closed';
   notes?: string;
   created_at: string;
+  // Joins
+  user?: { name: string };
 }
 
 export interface InventoryMovement {
