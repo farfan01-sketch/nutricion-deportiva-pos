@@ -72,7 +72,7 @@ const Layaways: React.FC = () => {
                         <Receipt size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900">#{layaway.sales?.ticket_number || layaway.id.slice(0, 8)}</p>
+                        <p className="text-sm font-bold text-slate-900">#{layaway.sales?.ticket_number || (layaway.id ? layaway.id.slice(0, 8) : '...')}</p>
                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
                           <Calendar size={10} /> {formatDate(layaway.created_at)}
                         </p>

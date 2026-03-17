@@ -8,6 +8,8 @@ interface TicketProps {
 }
 
 const Ticket = React.forwardRef<HTMLDivElement, TicketProps>(({ sale, items, businessName = 'NUTRICIÓN DEPORTIVA' }, ref) => {
+  if (!sale) return null;
+
   return (
     <div ref={ref} className="p-8 bg-white text-black font-mono text-sm w-[80mm] mx-auto">
       <div className="text-center mb-6">
@@ -18,7 +20,7 @@ const Ticket = React.forwardRef<HTMLDivElement, TicketProps>(({ sale, items, bus
       <div className="border-b border-dashed border-black pb-4 mb-4 space-y-1 text-xs">
         <div className="flex justify-between">
           <span>Ticket:</span>
-          <span>#{sale.ticket_number || sale.id.slice(0, 8)}</span>
+          <span>#{sale.ticket_number || (sale.id ? sale.id.slice(0, 8) : '...') }</span>
         </div>
         <div className="flex justify-between">
           <span>Fecha:</span>

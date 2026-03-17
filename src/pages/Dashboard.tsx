@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
                     <Receipt size={20} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">#{sale.ticket_number || sale.id.slice(0, 8)}</p>
+                    <p className="text-sm font-bold text-slate-900">#{sale.ticket_number || (sale.id ? sale.id.slice(0, 8) : '...')}</p>
                     <p className="text-xs text-slate-500">{formatDate(sale.created_at)}</p>
                   </div>
                 </div>

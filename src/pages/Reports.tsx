@@ -123,7 +123,7 @@ const Reports: React.FC = () => {
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={profitData.slice(0, 7)}>
+              <BarChart data={(profitData || []).slice(0, 7)}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 
                   dataKey="created_at" 
@@ -179,7 +179,7 @@ const Reports: React.FC = () => {
               </RePieChart>
             </ResponsiveContainer>
             <div className="w-1/2 space-y-3">
-              {topProducts.slice(0, 5).map((p, i) => (
+              {(topProducts || []).slice(0, 5).map((p, i) => (
                 <div key={p.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[i % COLORS.length]}} />
