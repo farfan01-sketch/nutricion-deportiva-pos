@@ -15,13 +15,13 @@ import { productService } from '../services/products';
 import { customerService } from '../services/customers';
 import { saleService } from '../services/sales';
 import { shiftService } from '../services/shifts';
-import { Product, Customer, Shift } from '../types';
+import { Product, Customer, Shift, User } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 import Ticket from '../components/Ticket';
 
 interface POSProps {
-  user: any;
+  user: User;
 }
 
 const POS: React.FC<POSProps> = ({ user }) => {
@@ -65,7 +65,8 @@ const POS: React.FC<POSProps> = ({ user }) => {
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.code.toLowerCase().includes(search.toLowerCase())
+    p.code.toLowerCase().includes(search.toLowerCase()) ||
+    p.brand.toLowerCase().includes(search.toLowerCase())
   );
 
   const addToCart = (product: Product) => {
@@ -134,18 +135,12 @@ const POS: React.FC<POSProps> = ({ user }) => {
         p_user_id: user.id
       });
 
-      const customer = customers.find(c => c.id === selectedCustomer);
+      // Fetch the real sale record to get the ticket_number
+      const saleRecord = await saleService.getSaleById(result);
+
       setLastSaleData({
-        id: result.sale_id,
-        ticket_number: result.ticket_number,
-        created_at: new Date().toISOString(),
-        user_name: user.name,
-        customer_name: customer?.name,
-        subtotal,
-        discount,
-        total,
-        payment_method: paymentMethod,
-        type: saleType
+        ...saleRecord,
+        items: [...cart] // Pass items for the ticket
       });
 
       setCart([]);
@@ -197,8 +192,12 @@ const POS: React.FC<POSProps> = ({ user }) => {
               disabled={product.stock <= 0}
               className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-left hover:border-primary-500 transition-all group disabled:opacity-50"
             >
-              <div className="aspect-square bg-slate-50 rounded-xl mb-3 flex items-center justify-center text-slate-300 group-hover:text-primary-500 transition-colors">
-                <Package size={40} />
+              <div className="aspect-square bg-slate-50 rounded-xl mb-3 flex items-center justify-center text-slate-300 group-hover:text-primary-500 transition-colors overflow-hidden">
+                {product.image_url ? (
+                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <Package size={40} />
+                )}
               </div>
               <p className="text-xs font-bold text-primary-600 uppercase tracking-wider">{product.brand}</p>
               <h4 className="font-bold text-slate-900 truncate">{product.name}</h4>

@@ -24,21 +24,21 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLogout }) => {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pos', label: 'Caja / POS', icon: ShoppingCart },
-    { id: 'products', label: 'Productos', icon: Package },
-    { id: 'inventory', label: 'Inventario', icon: History },
-    { id: 'customers', label: 'Clientes', icon: Users },
-    { id: 'suppliers', label: 'Proveedores', icon: Truck },
-    { id: 'layaways', label: 'Apartados', icon: Receipt },
-    { id: 'expenses', label: 'Gastos', icon: Wallet },
-    { id: 'shifts', label: 'Turnos', icon: Clock },
-    { id: 'reports', label: 'Reportes', icon: BarChart3 },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'staff'] },
+    { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, roles: ['admin', 'staff'] },
+    { id: 'sales-history', label: 'Historial', icon: History, roles: ['admin', 'staff'] },
+    { id: 'products', label: 'Productos', icon: Package, roles: ['admin'] },
+    { id: 'inventory', label: 'Inventario', icon: BarChart3, roles: ['admin', 'staff'] },
+    { id: 'customers', label: 'Clientes', icon: Users, roles: ['admin', 'staff'] },
+    { id: 'suppliers', label: 'Proveedores', icon: Truck, roles: ['admin'] },
+    { id: 'layaways', label: 'Apartados', icon: Receipt, roles: ['admin', 'staff'] },
+    { id: 'expenses', label: 'Gastos', icon: Wallet, roles: ['admin', 'staff'] },
+    { id: 'shifts', label: 'Turnos', icon: Clock, roles: ['admin', 'staff'] },
+    { id: 'reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'staff'] },
+    { id: 'staff', label: 'Personal', icon: UserCircle, roles: ['admin'] },
   ];
 
-  if (user.role === 'admin') {
-    menuItems.push({ id: 'staff', label: 'Personal', icon: UserCircle });
-  }
+  const filteredItems = menuItems.filter(item => item.roles.includes(user.role));
 
   return (
     <div className="w-64 bg-sidebar h-screen flex flex-col no-print">
@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
       </div>
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => (
+        {filteredItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onViewChange(item.id)}

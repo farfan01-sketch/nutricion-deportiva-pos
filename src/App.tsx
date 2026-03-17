@@ -13,6 +13,7 @@ import Expenses from './pages/Expenses';
 import Shifts from './pages/Shifts';
 import Reports from './pages/Reports';
 import Staff from './pages/Staff';
+import SalesHistory from './pages/SalesHistory';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -59,7 +60,8 @@ const App: React.FC = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
       case 'pos': return <POS user={user} />;
-      case 'products': return <Products />;
+      case 'sales-history': return <SalesHistory />;
+      case 'products': return <Products user={user} />;
       case 'inventory': return <Inventory />;
       case 'customers': return <Customers />;
       case 'suppliers': return <Suppliers />;

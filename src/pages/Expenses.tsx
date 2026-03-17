@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { expenseService } from '../services/expenses';
 import { Expense } from '../types';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 
 const Expenses: React.FC = () => {
@@ -42,6 +42,7 @@ const Expenses: React.FC = () => {
     try {
       await expenseService.create(formData);
       setIsModalOpen(false);
+      setFormData({ category: '', amount: 0, method: 'cash', note: '' });
       loadExpenses();
     } catch (err) {
       alert('Error al registrar gasto');
@@ -107,9 +108,9 @@ const Expenses: React.FC = () => {
               <thead>
                 <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                   <th className="px-6 py-4">Categoría</th>
-                  <th className="px-6 py-4">Fecha</th>
-                  <th className="px-6 py-4">Método</th>
+                  <th className="px-6 py-4">Fecha / Hora</th>
                   <th className="px-6 py-4">Monto</th>
+                  <th className="px-6 py-4">Método</th>
                   <th className="px-6 py-4">Nota</th>
                   <th className="px-6 py-4">Acciones</th>
                 </tr>
@@ -125,16 +126,15 @@ const Expenses: React.FC = () => {
                         <span className="text-sm font-bold text-slate-900">{expense.category}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {formatDate(expense.created_at)}
-                    </td>
                     <td className="px-6 py-4">
-                      <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-                        {expense.method}
-                      </span>
+                      <p className="text-sm text-slate-900">{new Date(expense.created_at).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-slate-500">{new Date(expense.created_at).toLocaleTimeString()}</p>
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-rose-600">
-                      {formatCurrency(expense.amount)}
+                      -{formatCurrency(expense.amount)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-bold uppercase text-slate-500">{expense.method}</span>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">
                       {expense.note || '-'}
@@ -172,14 +172,22 @@ const Expenses: React.FC = () => {
             <label className="text-sm font-semibold text-slate-700">Categoría del Gasto</label>
             <div className="relative">
               <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
+              <select
                 required
-                placeholder="Ej: Limpieza, Papelería, Renta..."
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none"
-              />
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none appearance-none"
+              >
+                <option value="">Selecciona una categoría</option>
+                <option value="Servicios">Servicios (Luz, Agua, Internet)</option>
+                <option value="Renta">Renta</option>
+                <option value="Sueldos">Sueldos / Comisiones</option>
+                <option value="Limpieza">Limpieza</option>
+                <option value="Papelería">Papelería / Insumos</option>
+                <option value="Mantenimiento">Mantenimiento</option>
+                <option value="Publicidad">Publicidad</option>
+                <option value="Otros">Otros</option>
+              </select>
             </div>
           </div>
 
@@ -207,21 +215,22 @@ const Expenses: React.FC = () => {
               >
                 <option value="cash">Efectivo de Caja</option>
                 <option value="transfer">Transferencia</option>
-                <option value="other">Otro</option>
+                <option value="card">Tarjeta</option>
               </select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Nota / Descripción</label>
+            <label className="text-sm font-semibold text-slate-700">Nota / Concepto</label>
             <div className="relative">
               <FileText className="absolute left-3 top-3 text-slate-400" size={18} />
               <textarea
                 rows={3}
+                required
                 value={formData.note}
                 onChange={(e) => setFormData({...formData, note: e.target.value})}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none"
-                placeholder="Detalles adicionales del gasto..."
+                placeholder="Describe el motivo del gasto..."
               />
             </div>
           </div>

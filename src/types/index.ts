@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'cashier';
+export type UserRole = 'admin' | 'staff';
 
 export interface User {
   id: string;
@@ -21,6 +21,7 @@ export interface Product {
   price_wholesale: number;
   stock: number;
   stock_min: number;
+  image_url?: string;
   created_at: string;
 }
 
@@ -29,7 +30,7 @@ export interface Customer {
   name: string;
   phone: string;
   type: 'retail' | 'wholesale';
-  notes: string;
+  notes?: string;
   created_at: string;
 }
 
@@ -38,7 +39,7 @@ export interface Supplier {
   name: string;
   contact: string;
   conditions: string;
-  notes: string;
+  notes?: string;
   created_at: string;
 }
 
@@ -47,14 +48,16 @@ export interface Sale {
   user_id: string;
   customer_id: string | null;
   subtotal: number;
-  discount: number;
   total: number;
   payment_method: 'cash' | 'transfer' | 'card' | 'mixed';
   type: 'sale' | 'layaway';
   status: 'completed' | 'pending' | 'cancelled';
   ticket_number: string;
-  notes: string;
+  notes?: string;
   created_at: string;
+  // Joins
+  customer?: { name: string };
+  user?: { name: string };
 }
 
 export interface SaleItem {
@@ -65,9 +68,7 @@ export interface SaleItem {
   price: number;
   cost: number;
   created_at: string;
-  product?: {
-    name: string;
-  };
+  product?: { name: string };
 }
 
 export interface Expense {
@@ -86,12 +87,13 @@ export interface Shift {
   closed_at: string | null;
   opening_cash: number;
   closing_cash: number | null;
-  expected_cash: number;
+  expected_cash: number | null;
   total_sales: number;
   total_expenses: number;
   difference: number;
   status: 'open' | 'closed';
-  notes: string;
+  notes?: string;
+  created_at: string;
 }
 
 export interface InventoryMovement {
@@ -111,6 +113,7 @@ export interface Layaway {
   balance: number;
   status: 'pending' | 'paid' | 'cancelled';
   created_at: string;
+  sales?: Sale;
 }
 
 // Views
@@ -147,7 +150,6 @@ export interface SaleProfit {
   customer_id: string | null;
   total: number;
   subtotal: number;
-  discount: number;
   payment_method: string;
   type: string;
   status: string;

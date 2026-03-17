@@ -29,12 +29,11 @@ export const shiftService = {
     return data;
   },
 
-  async closeShift(id: string, closingCash: number, notes: string): Promise<Shift> {
+  async closeShift(id: string, closingCash: number): Promise<Shift> {
     const { data, error } = await supabase
       .from('shifts')
       .update({
         closing_cash: closingCash,
-        notes,
         status: 'closed',
         closed_at: new Date().toISOString()
       })

@@ -5,10 +5,7 @@ import {
   Lock, 
   DollarSign, 
   History, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertCircle,
-  FileText
+  AlertCircle
 } from 'lucide-react';
 import { shiftService } from '../services/shifts';
 import { Shift, User } from '../types';
@@ -25,7 +22,6 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [cashAmount, setCashAmount] = useState(0);
-  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     loadData();
@@ -60,10 +56,9 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     e.preventDefault();
     if (!openShift) return;
     try {
-      await shiftService.closeShift(openShift.id, cashAmount, notes);
+      await shiftService.closeShift(openShift.id, cashAmount);
       setIsModalOpen(false);
       setCashAmount(0);
-      setNotes('');
       loadData();
     } catch (err) {
       alert('Error al cerrar turno');
@@ -102,7 +97,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
       </div>
 
       {openShift && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Fondo Inicial</p>
             <h3 className="text-xl font-bold text-slate-900">{formatCurrency(openShift.opening_cash)}</h3>
@@ -110,23 +105,9 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               <Clock size={12} /> Abierto: {formatDate(openShift.opened_at)}
             </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Ventas del Turno</p>
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp size={20} className="text-emerald-500" />
-              {formatCurrency(openShift.total_sales)}
-            </h3>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <p className="text-xs font-bold text-rose-600 uppercase tracking-wider mb-1">Gastos del Turno</p>
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <TrendingDown size={20} className="text-rose-500" />
-              {formatCurrency(openShift.total_expenses)}
-            </h3>
-          </div>
           <div className="bg-primary-600 p-6 rounded-2xl shadow-lg shadow-primary-100 text-white">
             <p className="text-xs font-bold text-primary-100 uppercase tracking-wider mb-1">Efectivo Esperado</p>
-            <h3 className="text-2xl font-black">{formatCurrency(openShift.expected_cash)}</h3>
+            <h3 className="text-2xl font-black">{formatCurrency(openShift.expected_cash || 0)}</h3>
           </div>
         </div>
       )}
@@ -142,10 +123,8 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                 <th className="px-6 py-4">Apertura / Cierre</th>
                 <th className="px-6 py-4">Fondo Inicial</th>
-                <th className="px-6 py-4">Ventas / Gastos</th>
                 <th className="px-6 py-4">Esperado</th>
                 <th className="px-6 py-4">Real</th>
-                <th className="px-6 py-4">Diferencia</th>
                 <th className="px-6 py-4">Estado</th>
               </tr>
             </thead>
@@ -161,24 +140,11 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
                   <td className="px-6 py-4 text-sm font-medium text-slate-600">
                     {formatCurrency(shift.opening_cash)}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-emerald-600">+{formatCurrency(shift.total_sales)}</p>
-                      <p className="text-[10px] font-bold text-rose-600">-{formatCurrency(shift.total_expenses)}</p>
-                    </div>
-                  </td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                    {formatCurrency(shift.expected_cash)}
+                    {formatCurrency(shift.expected_cash || 0)}
                   </td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-900">
                     {shift.closing_cash !== null ? formatCurrency(shift.closing_cash) : '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    {shift.status === 'closed' && (
-                      <span className={`text-sm font-bold ${shift.difference === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {formatCurrency(shift.difference)}
-                      </span>
-                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${
@@ -204,7 +170,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
             <AlertCircle className="text-primary-600 shrink-0" size={20} />
             <p className="text-xs text-primary-800 leading-relaxed">
               {isClosing 
-                ? 'Ingresa el efectivo real contado en caja para finalizar el turno. El sistema calculará automáticamente cualquier diferencia.'
+                ? 'Ingresa el efectivo real contado en caja para finalizar el turno.'
                 : 'Ingresa el monto de efectivo con el que inicias el turno (fondo de caja).'}
             </p>
           </div>
@@ -226,22 +192,6 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               />
             </div>
           </div>
-
-          {isClosing && (
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Notas del Cierre</label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-3 text-slate-400" size={18} />
-                <textarea
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="Observaciones sobre el turno..."
-                />
-              </div>
-            </div>
-          )}
 
           <div className="pt-4 flex gap-4">
             <button

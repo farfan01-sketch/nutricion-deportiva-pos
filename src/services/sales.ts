@@ -12,7 +12,7 @@ export const saleService = {
     p_total: number;
     p_type: 'sale' | 'layaway';
     p_user_id: string;
-  }): Promise<{ sale_id: string; ticket_number: string }> {
+  }): Promise<string> {
     const { data, error } = await supabase.rpc('process_sale', params);
 
     if (error) throw error;
@@ -22,7 +22,7 @@ export const saleService = {
   async getRecentSales(limit = 10): Promise<Sale[]> {
     const { data, error } = await supabase
       .from('sales')
-      .select('*')
+      .select('*, customer:customers(name), user:users(name)')
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -34,9 +34,7 @@ export const saleService = {
     const { data, error } = await supabase
       .from('sale_items')
       .select(`
-        quantity,
-        price,
-        product_id,
+        *,
         product:products (
           name
         )
@@ -50,11 +48,55 @@ export const saleService = {
   async getPendingLayaways(): Promise<Layaway[]> {
     const { data, error } = await supabase
       .from('layaways')
-      .select('*, sales(*)')
+      .select('*, sales(*, customer:customers(name))')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
+  },
+
+  async getHistory(filters?: {
+    startDate?: string;
+    endDate?: string;
+    ticketNumber?: string;
+    customerId?: string;
+  }): Promise<Sale[]> {
+    let query = supabase
+      .from('sales')
+      .select(`
+        *,
+        customer:customers (name),
+        user:users (name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (filters?.startDate) {
+      query = query.gte('created_at', `${filters.startDate}T00:00:00`);
+    }
+    if (filters?.endDate) {
+      query = query.lte('created_at', `${filters.endDate}T23:59:59`);
+    }
+    if (filters?.ticketNumber) {
+      query = query.eq('ticket_number', filters.ticketNumber);
+    }
+    if (filters?.customerId) {
+      query = query.eq('customer_id', filters.customerId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getSaleById(id: string): Promise<Sale> {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*, customer:customers(name), user:users(name)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 };

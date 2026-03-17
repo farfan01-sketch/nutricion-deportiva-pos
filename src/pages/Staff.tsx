@@ -22,7 +22,7 @@ const Staff: React.FC = () => {
   const [formData, setFormData] = useState<Partial<User>>({
     username: '',
     password: '',
-    role: 'cashier',
+    role: 'staff',
     name: ''
   });
 
@@ -49,7 +49,7 @@ const Staff: React.FC = () => {
       }
       setIsModalOpen(false);
       setEditingUser(null);
-      setFormData({ username: '', password: '', role: 'cashier', name: '' });
+      setFormData({ username: '', password: '', role: 'staff', name: '' });
       loadUsers();
     } catch (err) {
       alert('Error al guardar usuario');
@@ -88,7 +88,7 @@ const Staff: React.FC = () => {
         <button
           onClick={() => {
             setEditingUser(null);
-            setFormData({ username: '', password: '', role: 'cashier', name: '' });
+            setFormData({ username: '', password: '', role: 'staff', name: '' });
             setIsModalOpen(true);
           }}
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary-200"
@@ -141,7 +141,7 @@ const Staff: React.FC = () => {
                     <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${
                       user.role === 'admin' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
                     }`}>
-                      {user.role === 'admin' ? 'Administrador' : 'Cajero'}
+                      {user.role === 'admin' ? 'Administrador' : 'Personal'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -220,7 +220,7 @@ const Staff: React.FC = () => {
                   onChange={(e) => setFormData({...formData, role: e.target.value as any})}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none appearance-none"
                 >
-                  <option value="cashier">Cajero</option>
+                  <option value="staff">Personal</option>
                   <option value="admin">Administrador</option>
                 </select>
               </div>

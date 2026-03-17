@@ -10,18 +10,27 @@ import {
   DollarSign, 
   BarChart,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  Image as ImageIcon,
+  Upload,
+  X
 } from 'lucide-react';
 import { productService } from '../services/products';
-import { Product } from '../types';
+import { Product, User } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 
-const Products: React.FC = () => {
+interface ProductsProps {
+  user: User;
+}
+
+const Products: React.FC<ProductsProps> = ({ user }) => {
+  const isAdmin = user.role === 'admin';
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<Partial<Product>>({
     code: '',
     name: '',
@@ -32,7 +41,8 @@ const Products: React.FC = () => {
     price_retail: 0,
     price_wholesale: 0,
     stock: 0,
-    stock_min: 5
+    stock_min: 5,
+    image_url: ''
   });
 
   useEffect(() => {
@@ -59,8 +69,25 @@ const Products: React.FC = () => {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const url = await productService.uploadImage(file);
+      setFormData({ ...formData, image_url: url });
+    } catch (err) {
+      alert('Error al subir imagen');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
+    
     try {
       if (editingProduct) {
         await productService.update(editingProduct.id, formData);
@@ -75,12 +102,14 @@ const Products: React.FC = () => {
   };
 
   const openEdit = (product: Product) => {
+    if (!isAdmin) return;
     setEditingProduct(product);
     setFormData(product);
     setIsModalOpen(true);
   };
 
   const openCreate = () => {
+    if (!isAdmin) return;
     setEditingProduct(null);
     setFormData({
       code: '',
@@ -92,12 +121,14 @@ const Products: React.FC = () => {
       price_retail: 0,
       price_wholesale: 0,
       stock: 0,
-      stock_min: 5
+      stock_min: 5,
+      image_url: ''
     });
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) return;
     if (confirm('¿Estás seguro de eliminar este producto?')) {
       await productService.delete(id);
       loadProducts();
@@ -111,13 +142,15 @@ const Products: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">Catálogo de Productos</h1>
           <p className="text-slate-500">Gestiona el inventario y precios de tus productos.</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary-200"
-        >
-          <Plus size={20} />
-          Nuevo Producto
-        </button>
+        {isAdmin && (
+          <button
+            onClick={openCreate}
+            className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary-200"
+          >
+            <Plus size={20} />
+            Nuevo Producto
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -147,7 +180,7 @@ const Products: React.FC = () => {
                 <th className="px-6 py-4">Stock</th>
                 <th className="px-6 py-4">Costo</th>
                 <th className="px-6 py-4">Precio Público</th>
-                <th className="px-6 py-4">Acciones</th>
+                {isAdmin && <th className="px-6 py-4">Acciones</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -155,8 +188,12 @@ const Products: React.FC = () => {
                 <tr key={product.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-500 transition-colors">
-                        <Package size={20} />
+                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-500 transition-colors overflow-hidden">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <Package size={20} />
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-900">{product.name}</p>
@@ -186,22 +223,24 @@ const Products: React.FC = () => {
                       <span className="text-[10px] text-primary-600 font-bold">Mayor: {formatCurrency(product.price_wholesale)}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => openEdit(product)}
-                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(product.id)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => openEdit(product)}
+                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(product.id)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -216,6 +255,37 @@ const Products: React.FC = () => {
         size="lg"
       >
         <form onSubmit={handleSave} className="space-y-6">
+          {/* Image Upload */}
+          <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="w-24 h-24 bg-white rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden relative group">
+              {formData.image_url ? (
+                <>
+                  <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <button 
+                    type="button"
+                    onClick={() => setFormData({...formData, image_url: ''})}
+                    className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    <X size={20} />
+                  </button>
+                </>
+              ) : uploading ? (
+                <div className="animate-spin w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full" />
+              ) : (
+                <ImageIcon size={32} />
+              )}
+            </div>
+            <div className="flex-1 space-y-1">
+              <h4 className="text-sm font-bold text-slate-900">Imagen del Producto</h4>
+              <p className="text-xs text-slate-500">Sube una imagen clara del producto para el POS.</p>
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 transition-all mt-2">
+                <Upload size={14} />
+                {formData.image_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">Código de Barras</label>
