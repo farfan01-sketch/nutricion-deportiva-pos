@@ -50,7 +50,7 @@ const Ticket = React.forwardRef<HTMLDivElement, TicketProps>(({ sale, items, bus
           {items.map((item, idx) => (
             <tr key={idx}>
               <td className="py-1">{item.quantity}</td>
-              <td className="py-1">{item.product_name || 'Producto'}</td>
+              <td className="py-1">{item.product?.name || item.name || item.product_name || 'Producto'}</td>
               <td className="py-1 text-right">{formatCurrency(item.price * item.quantity)}</td>
             </tr>
           ))}

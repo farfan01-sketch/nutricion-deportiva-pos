@@ -65,6 +65,9 @@ export interface SaleItem {
   price: number;
   cost: number;
   created_at: string;
+  product?: {
+    name: string;
+  };
 }
 
 export interface Expense {

@@ -33,7 +33,12 @@ export const saleService = {
   async getSaleItems(saleId: string): Promise<SaleItem[]> {
     const { data, error } = await supabase
       .from('sale_items')
-      .select('*')
+      .select(`
+        *,
+        product:products (
+          name
+        )
+      `)
       .eq('sale_id', saleId);
 
     if (error) throw error;
