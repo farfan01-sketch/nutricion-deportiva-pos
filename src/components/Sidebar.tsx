@@ -70,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
       <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-3 px-4 py-3 mb-2">
           <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
-            {user.name.charAt(0).toUpperCase()}
+            {(user.name || '?').charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{user.name}</p>
