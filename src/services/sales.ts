@@ -34,7 +34,9 @@ export const saleService = {
     const { data, error } = await supabase
       .from('sale_items')
       .select(`
-        *,
+        quantity,
+        price,
+        product_id,
         product:products (
           name
         )
@@ -42,7 +44,7 @@ export const saleService = {
       .eq('sale_id', saleId);
 
     if (error) throw error;
-    return data || [];
+    return (data as any) || [];
   },
 
   async getPendingLayaways(): Promise<Layaway[]> {
