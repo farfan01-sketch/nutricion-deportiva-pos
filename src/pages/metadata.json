@@ -1,0 +1,5 @@
+{
+  "name": "Nutrición Deportiva POS",
+  "description": "Sistema de Punto de Venta integral para Nutrición Deportiva del Istmo, incluyendo inventarios, apartados y reportes.",
+  "requestFramePermissions": ["camera"]
+}
