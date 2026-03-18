@@ -49,12 +49,23 @@ export const saleService = {
   async getPendingLayaways(): Promise<Layaway[]> {
     const { data, error } = await supabase
       .from('layaways')
-      .select('*, sales(*, customer:customers(name))')
+      .select(`
+        *,
+        sales (
+          *,
+          customer:customers (
+            name
+          )
+        )
+      `)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+    if (error) {
+      console.error('Error fetching pending layaways:', error);
+      return [];
+    }
+    return (data as any) || [];
   },
 
   async getHistory(filters?: {
