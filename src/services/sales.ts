@@ -99,5 +99,15 @@ export const saleService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async cancelSale(saleId: string, reason: string, userId: string): Promise<void> {
+    const { error } = await supabase.rpc('cancel_sale', {
+      p_sale_id: saleId,
+      p_reason: reason,
+      p_user_id: userId
+    });
+
+    if (error) throw error;
   }
 };

@@ -60,12 +60,12 @@ const App: React.FC = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
       case 'pos': return <POS user={user} />;
-      case 'sales-history': return <SalesHistory />;
+      case 'sales-history': return <SalesHistory user={user} />;
       case 'products': return <Products user={user} />;
       case 'inventory': return <Inventory />;
       case 'customers': return <Customers />;
       case 'suppliers': return <Suppliers />;
-      case 'layaways': return <Layaways />;
+      case 'layaways': return <Layaways user={user} />;
       case 'expenses': return <Expenses />;
       case 'shifts': return <Shifts user={user} />;
       case 'reports': return <Reports />;

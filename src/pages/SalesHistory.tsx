@@ -6,23 +6,35 @@ import {
   Eye, 
   Filter,
   X,
-  User as UserIcon
+  User as UserIcon,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { saleService } from '../services/sales';
 import { customerService } from '../services/customers';
-import { Customer, Sale, SaleItem } from '../types';
+import { Customer, Sale, SaleItem, User } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 import Ticket from '../components/Ticket';
 
-const SalesHistory: React.FC = () => {
+interface SalesHistoryProps {
+  user: User;
+}
+
+const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTicket, setShowTicket] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  
+  // Cancellation state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
   
   const [filters, setFilters] = useState({
     startDate: '',
@@ -76,6 +88,28 @@ const SalesHistory: React.FC = () => {
       setShowTicket(true);
     } catch (err) {
       alert('Error al cargar detalles de la venta');
+    }
+  };
+
+  const handleOpenCancelModal = (sale: Sale) => {
+    setSaleToCancel(sale);
+    setCancelReason('');
+    setShowCancelModal(true);
+  };
+
+  const handleCancelSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleToCancel) return;
+    
+    setCancelling(true);
+    try {
+      await saleService.cancelSale(saleToCancel.id, cancelReason, user.id);
+      setShowCancelModal(false);
+      loadSales();
+    } catch (err: any) {
+      alert(err.message || 'Error al cancelar la venta');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -243,6 +277,15 @@ const SalesHistory: React.FC = () => {
                       >
                         <Eye size={18} />
                       </button>
+                      {sale.status !== 'cancelled' && (
+                        <button 
+                          onClick={() => handleOpenCancelModal(sale)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Cancelar Venta"
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -279,6 +322,53 @@ const SalesHistory: React.FC = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Cancellation Modal */}
+      <Modal
+        isOpen={showCancelModal}
+        onClose={() => !cancelling && setShowCancelModal(false)}
+        title="Cancelar Venta"
+        size="sm"
+      >
+        <form onSubmit={handleCancelSale} className="space-y-6">
+          <div className="bg-rose-50 p-4 rounded-xl flex items-start gap-3">
+            <AlertCircle className="text-rose-600 shrink-0" size={20} />
+            <p className="text-xs text-rose-800 leading-relaxed">
+              Esta acción devolverá los productos al inventario y marcará la venta como cancelada. Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Motivo de Cancelación</label>
+            <textarea
+              required
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none text-sm"
+              placeholder="Ej: Error en el cobro, el cliente ya no quiso el producto..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="button"
+              disabled={cancelling}
+              onClick={() => setShowCancelModal(false)}
+              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
+            >
+              No, Volver
+            </button>
+            <button
+              type="submit"
+              disabled={cancelling}
+              className="flex-1 px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
+            >
+              {cancelling ? 'Cancelando...' : 'Sí, Cancelar'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

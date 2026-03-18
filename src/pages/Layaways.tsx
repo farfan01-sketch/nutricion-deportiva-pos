@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Search, Filter, Calendar, User, Clock } from 'lucide-react';
+import { Receipt, Search, Filter, Calendar, User as UserIcon, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { saleService } from '../services/sales';
 import { formatCurrency, formatDate } from '../utils/format';
+import { User } from '../types';
+import Modal from '../components/Modal';
 
-const Layaways: React.FC = () => {
+interface LayawaysProps {
+  user: User;
+}
+
+const Layaways: React.FC<LayawaysProps> = ({ user }) => {
   const [layaways, setLayaways] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  
+  // Cancellation state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [layawayToCancel, setLayawayToCancel] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     loadLayaways();
@@ -17,6 +29,29 @@ const Layaways: React.FC = () => {
       setLayaways(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleOpenCancelModal = (layaway: any) => {
+    setLayawayToCancel(layaway);
+    setCancelReason('');
+    setShowCancelModal(true);
+  };
+
+  const handleCancelLayaway = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!layawayToCancel) return;
+    
+    setCancelling(true);
+    try {
+      // Usamos el sale_id del apartado para cancelar la venta relacionada
+      await saleService.cancelSale(layawayToCancel.sale_id, cancelReason, user.id);
+      setShowCancelModal(false);
+      loadLayaways();
+    } catch (err: any) {
+      alert(err.message || 'Error al cancelar el apartado');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -81,7 +116,7 @@ const Layaways: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <User size={16} className="text-slate-400" />
+                      <UserIcon size={16} className="text-slate-400" />
                       <span>ID: {layaway.sales?.customer_id || 'N/A'}</span>
                     </div>
                   </td>
@@ -108,9 +143,18 @@ const Layaways: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <button className="text-primary-600 text-xs font-bold hover:underline">
-                      Registrar Pago
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button className="text-primary-600 text-xs font-bold hover:underline">
+                        Registrar Pago
+                      </button>
+                      <button 
+                        onClick={() => handleOpenCancelModal(layaway)}
+                        className="text-rose-600 hover:text-rose-700 p-1 rounded-lg transition-all"
+                        title="Cancelar Apartado"
+                      >
+                        <XCircle size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -125,6 +169,53 @@ const Layaways: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Cancellation Modal */}
+      <Modal
+        isOpen={showCancelModal}
+        onClose={() => !cancelling && setShowCancelModal(false)}
+        title="Cancelar Apartado"
+        size="sm"
+      >
+        <form onSubmit={handleCancelLayaway} className="space-y-6">
+          <div className="bg-rose-50 p-4 rounded-xl flex items-start gap-3">
+            <AlertCircle className="text-rose-600 shrink-0" size={20} />
+            <p className="text-xs text-rose-800 leading-relaxed">
+              Esta acción devolverá los productos al inventario y marcará tanto el apartado como la venta como cancelados.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Motivo de Cancelación</label>
+            <textarea
+              required
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none text-sm"
+              placeholder="Ej: El cliente ya no regresó por el producto..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="button"
+              disabled={cancelling}
+              onClick={() => setShowCancelModal(false)}
+              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
+            >
+              No, Volver
+            </button>
+            <button
+              type="submit"
+              disabled={cancelling}
+              className="flex-1 px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
+            >
+              {cancelling ? 'Cancelando...' : 'Sí, Cancelar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
