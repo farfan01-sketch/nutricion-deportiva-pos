@@ -25,6 +25,24 @@ export interface Product {
   created_at: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  type: 'retail' | 'wholesale';
+  notes?: string;
+  created_at: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contact: string;
+  conditions: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface Sale {
   id: string;
   user_id: string;
@@ -38,6 +56,20 @@ export interface Sale {
   shift_id?: string;
   notes?: string;
   created_at: string;
+  // Joins
+  customer?: { name: string };
+  user?: { name: string };
+}
+
+export interface SaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  cost: number;
+  created_at: string;
+  product?: { name: string };
 }
 
 export interface Expense {
@@ -64,5 +96,66 @@ export interface Shift {
   status: 'open' | 'closed';
   notes?: string;
   created_at: string;
+  // Joins
   user?: { name: string };
+}
+
+export interface InventoryMovement {
+  id: string;
+  product_id: string;
+  type: 'in' | 'out' | 'waste';
+  quantity: number;
+  reason: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface Layaway {
+  id: string;
+  sale_id: string;
+  deposit: number;
+  balance: number;
+  status: 'pending' | 'paid' | 'cancelled';
+  created_at: string;
+  sales?: Sale;
+}
+
+// Views
+export interface DashboardStats {
+  sales_today: number;
+  expenses_today: number;
+  low_stock_count: number;
+  pending_layaways: number;
+  profit_today: number;
+}
+
+export interface LowStockProduct {
+  id: string;
+  code: string;
+  name: string;
+  brand: string;
+  stock: number;
+  stock_min: number;
+}
+
+export interface TopProduct {
+  id: string;
+  name: string;
+  code: string;
+  brand: string;
+  total_sold: number;
+  total_revenue: number;
+}
+
+export interface SaleProfit {
+  sale_id: string;
+  created_at: string;
+  user_id: string;
+  customer_id: string | null;
+  total: number;
+  subtotal: number;
+  payment_method: string;
+  type: string;
+  status: string;
+  profit: number;
 }
