@@ -10,12 +10,14 @@ import {
   TrendingDown
 } from 'lucide-react';
 import { expenseService } from '../services/expenses';
-import { Expense } from '../types';
+import { shiftService } from '../services/shifts';
+import { Expense, Shift } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 
 const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [openShift, setOpenShift] = useState<Shift | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Expense>>({
     category: '',
@@ -26,7 +28,17 @@ const Expenses: React.FC = () => {
 
   useEffect(() => {
     loadExpenses();
+    loadOpenShift();
   }, []);
+
+  const loadOpenShift = async () => {
+    try {
+      const shift = await shiftService.getOpenShift();
+      setOpenShift(shift);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadExpenses = async () => {
     try {
@@ -39,8 +51,12 @@ const Expenses: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!openShift) {
+      alert('Debes abrir un turno antes de registrar gastos.');
+      return;
+    }
     try {
-      await expenseService.create(formData);
+      await expenseService.create({ ...formData, shift_id: openShift.id });
       setIsModalOpen(false);
       setFormData({ category: '', amount: 0, method: 'cash', note: '' });
       loadExpenses();

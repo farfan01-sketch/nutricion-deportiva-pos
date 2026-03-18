@@ -53,6 +53,7 @@ export interface Sale {
   type: 'sale' | 'layaway';
   status: 'completed' | 'pending' | 'cancelled';
   ticket_number: string;
+  shift_id?: string;
   notes?: string;
   created_at: string;
   // Joins
@@ -76,6 +77,7 @@ export interface Expense {
   category: string;
   amount: number;
   method: string;
+  shift_id?: string;
   note: string;
   created_at: string;
 }

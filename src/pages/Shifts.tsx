@@ -56,11 +56,12 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     }
   };
 
-  const loadShiftTotals = React.useCallback(async (openedAt: string, closedAt?: string) => {
+  const loadShiftTotals = React.useCallback(async (shiftId: string, openedAt: string, closedAt?: string) => {
     try {
-      const totals = await shiftService.getShiftTotals(openedAt, closedAt);
+      const totals = await shiftService.getShiftTotals(shiftId, openedAt, closedAt);
       // Calculate expected physical cash
-      totals.expected_cash = (openShift?.opening_cash || selectedShift?.opening_cash || 0) + totals.cash_sales - totals.cash_expenses;
+      const initialCash = openShift?.opening_cash || selectedShift?.opening_cash || 0;
+      totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses;
       setShiftTotals(totals);
     } catch (err) {
       console.error(err);
@@ -69,7 +70,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
 
   useEffect(() => {
     if (openShift) {
-      loadShiftTotals(openShift.opened_at);
+      loadShiftTotals(openShift.id, openShift.opened_at);
     } else {
       setShiftTotals(null);
     }
@@ -117,7 +118,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     setModalType('view');
     setIsModalOpen(true);
     // Load totals for this specific historical shift
-    const totals = await shiftService.getShiftTotals(shift.opened_at, shift.closed_at || undefined);
+    const totals = await shiftService.getShiftTotals(shift.id, shift.opened_at, shift.closed_at || undefined);
     totals.expected_cash = shift.opening_cash + totals.cash_sales - totals.cash_expenses;
     setShiftTotals(totals);
   };
@@ -195,7 +196,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
                 Resumen del Turno Actual
               </h3>
               <button 
-                onClick={() => loadShiftTotals(openShift.opened_at)}
+                onClick={() => openShift && loadShiftTotals(openShift.id, openShift.opened_at)}
                 className="text-xs font-bold text-primary-600 hover:text-primary-700"
               >
                 Actualizar Datos

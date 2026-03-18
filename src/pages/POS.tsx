@@ -132,7 +132,8 @@ const POS: React.FC<POSProps> = ({ user }) => {
         p_subtotal: subtotal,
         p_total: total,
         p_type: saleType,
-        p_user_id: user.id
+        p_user_id: user.id,
+        p_shift_id: openShift.id
       });
 
       // Fetch the real sale record to get the ticket_number

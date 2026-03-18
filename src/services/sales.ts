@@ -12,6 +12,7 @@ export const saleService = {
     p_total: number;
     p_type: 'sale' | 'layaway';
     p_user_id: string;
+    p_shift_id: string | null;
   }): Promise<string> {
     const { data, error } = await supabase.rpc('process_sale', params);
 

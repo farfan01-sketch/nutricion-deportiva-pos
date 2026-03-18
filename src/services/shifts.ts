@@ -50,26 +50,37 @@ export const shiftService = {
     return data;
   },
 
-  async getShiftTotals(openedAt: string, closedAt?: string): Promise<any> {
+  async getShiftTotals(shiftId: string, openedAt: string, closedAt?: string): Promise<any> {
     const end = closedAt || new Date().toISOString();
     
     // Get sales
-    const { data: sales, error: salesError } = await supabase
+    let salesQuery = supabase
       .from('sales')
       .select('total, payment_method, type')
-      .gte('created_at', openedAt)
-      .lte('created_at', end)
       .eq('status', 'completed');
+
+    if (shiftId) {
+      salesQuery = salesQuery.eq('shift_id', shiftId);
+    } else {
+      salesQuery = salesQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: sales, error: salesError } = await salesQuery;
 
     if (salesError) throw salesError;
 
     // Get expenses
-    const { data: expenses, error: expensesError } = await supabase
+    let expensesQuery = supabase
       .from('expenses')
-      .select('amount, method')
-      .gte('created_at', openedAt)
-      .lte('created_at', end);
+      .select('amount, method');
 
+    if (shiftId) {
+      expensesQuery = expensesQuery.eq('shift_id', shiftId);
+    } else {
+      expensesQuery = expensesQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: expenses, error: expensesError } = await expensesQuery;
     if (expensesError) throw expensesError;
 
     const totals = {
