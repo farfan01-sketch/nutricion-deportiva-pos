@@ -5,7 +5,6 @@ import {
   TrendingDown, 
   PieChart, 
   Download,
-  Package,
   DollarSign,
   RotateCcw
 } from 'lucide-react';

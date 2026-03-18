@@ -16,6 +16,7 @@ import {
 import { useReactToPrint } from 'react-to-print';
 import { supabase } from '../lib/supabase';
 import { saleService } from '../services/sales';
+import { shiftService } from '../services/shifts';
 import { customerService } from '../services/customers';
 import { Customer, Sale, SaleItem, User } from '../types';
 import { formatCurrency } from '../utils/format';
