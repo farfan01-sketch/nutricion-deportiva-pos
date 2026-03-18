@@ -6,7 +6,8 @@ import {
   PieChart, 
   Download,
   Package,
-  DollarSign
+  DollarSign,
+  RotateCcw
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -73,38 +74,35 @@ const Reports: React.FC = () => {
             </div>
             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12%</span>
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Hoy</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Brutas Hoy</p>
           <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.sales_today || 0)}</h3>
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+              <RotateCcw size={20} />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Devoluciones Hoy</p>
+          <h3 className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(stats?.returns_today || 0)}</h3>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
               <DollarSign size={20} />
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+8%</span>
           </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Utilidad Hoy</p>
-          <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.profit_today || 0)}</h3>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Netas Hoy</p>
+          <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency((stats?.sales_today || 0) - (stats?.returns_today || 0))}</h3>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
               <TrendingDown size={20} />
             </div>
-            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">-5%</span>
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gastos Hoy</p>
           <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.expenses_today || 0)}</h3>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-              <Package size={20} />
-            </div>
-            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">Alerta</span>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Stock Bajo</p>
-          <h3 className="text-xl font-bold text-slate-900 mt-1">{stats?.low_stock_count || 0} Prod.</h3>
         </div>
       </div>
 

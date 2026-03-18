@@ -11,6 +11,7 @@ export const reportService = {
     if (error) {
       return {
         sales_today: 0,
+        returns_today: 0,
         expenses_today: 0,
         low_stock_count: 0,
         pending_layaways: 0,

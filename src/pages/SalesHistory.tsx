@@ -14,6 +14,7 @@ import {
   Plus
 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+import { supabase } from '../lib/supabase';
 import { saleService } from '../services/sales';
 import { customerService } from '../services/customers';
 import { Customer, Sale, SaleItem, User } from '../types';
@@ -32,6 +33,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
   const [showTicket, setShowTicket] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [selectedSaleReturns, setSelectedSaleReturns] = useState<any[]>([]);
   
   // Cancellation state
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -45,6 +47,8 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
   const [returnItems, setReturnItems] = useState<{ product_id: string; name: string; quantity: number; max: number; price: number; toReturn: number }[]>([]);
   const [returnReason, setReturnReason] = useState('');
   const [returning, setReturning] = useState(false);
+  
+  const [openShift, setOpenShift] = useState<any>(null);
   
   const [filters, setFilters] = useState({
     startDate: '',
@@ -72,10 +76,12 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
 
   const loadInitialData = React.useCallback(async () => {
     try {
-      const [c] = await Promise.all([
-        customerService.getAll()
+      const [c, s] = await Promise.all([
+        customerService.getAll(),
+        shiftService.getOpenShift()
       ]);
       setCustomers(c);
+      setOpenShift(s);
       loadSales();
     } catch (err) {
       console.error(err);
@@ -88,8 +94,12 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
 
   const handleViewTicket = async (sale: Sale) => {
     try {
-      const items = await saleService.getSaleItems(sale.id);
+      const [items, returns] = await Promise.all([
+        saleService.getSaleItems(sale.id),
+        supabase.from('sale_returns').select('*, items:return_items(quantity, price, product:products(name))').eq('sale_id', sale.id)
+      ]);
       setSaleItems(items);
+      setSelectedSaleReturns(returns.data || []);
       setSelectedSale({
         ...sale,
         customer_name: sale.customer?.name,
@@ -125,16 +135,31 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
 
   const handleOpenReturnModal = async (sale: Sale) => {
     try {
-      const items = await saleService.getSaleItems(sale.id);
+      const [items, returns] = await Promise.all([
+        saleService.getSaleItems(sale.id),
+        supabase.from('sale_returns').select('*, items:return_items(*)').eq('sale_id', sale.id)
+      ]);
+
+      // Calculate already returned quantities
+      const returnedQtys: Record<string, number> = {};
+      returns.data?.forEach(ret => {
+        ret.items?.forEach((ri: any) => {
+          returnedQtys[ri.product_id] = (returnedQtys[ri.product_id] || 0) + ri.quantity;
+        });
+      });
+
       setSaleToReturn(sale);
-      setReturnItems(items.map(item => ({
-        product_id: item.product_id,
-        name: item.product?.name || 'Producto',
-        quantity: item.quantity,
-        max: item.quantity,
-        price: item.price,
-        toReturn: 0
-      })));
+      setReturnItems(items.map(item => {
+        const alreadyReturned = returnedQtys[item.product_id] || 0;
+        return {
+          product_id: item.product_id,
+          name: item.product?.name || 'Producto',
+          quantity: item.quantity,
+          max: item.quantity - alreadyReturned,
+          price: item.price,
+          toReturn: 0
+        };
+      }));
       setReturnReason('');
       setShowReturnModal(true);
     } catch (err) {
@@ -167,6 +192,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
       await saleService.processPartialReturn({
         p_sale_id: saleToReturn.id,
         p_user_id: user.id,
+        p_shift_id: openShift?.id || null,
         p_reason: returnReason,
         p_items: itemsToReturn.map(i => ({
           product_id: i.product_id,
@@ -330,6 +356,12 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-slate-900">{formatCurrency(sale.total)}</span>
+                    {sale.notes?.includes('DEVOLUCIÓN PARCIAL') && (
+                      <div className="flex items-center gap-1 text-[8px] font-bold text-amber-600 uppercase mt-1">
+                        <RotateCcw size={8} />
+                        Devolución
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${
@@ -386,6 +418,35 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
           <div className="bg-slate-50 rounded-xl p-4 overflow-hidden">
             <Ticket ref={ticketRef} sale={selectedSale} items={saleItems} />
           </div>
+
+          {selectedSaleReturns.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                <RotateCcw size={14} />
+                Historial de Devoluciones
+              </h4>
+              <div className="space-y-2">
+                {selectedSaleReturns.map((ret) => (
+                  <div key={ret.id} className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-[10px]">
+                    <div className="flex justify-between font-bold text-amber-900 mb-1">
+                      <span>{new Date(ret.created_at).toLocaleString()}</span>
+                      <span>Total: {formatCurrency(ret.total_returned)}</span>
+                    </div>
+                    <p className="text-amber-700 italic mb-2">"{ret.reason}"</p>
+                    <div className="space-y-1">
+                      {ret.items?.map((item: any, i: number) => (
+                        <div key={i} className="flex justify-between text-amber-800">
+                          <span>{item.quantity}x {item.product?.name}</span>
+                          <span>{formatCurrency(item.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-4">
             <button
               onClick={handlePrint}

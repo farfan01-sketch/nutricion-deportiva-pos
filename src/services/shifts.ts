@@ -83,6 +83,20 @@ export const shiftService = {
     const { data: expenses, error: expensesError } = await expensesQuery;
     if (expensesError) throw expensesError;
 
+    // Get returns
+    let returnsQuery = supabase
+      .from('sale_returns')
+      .select('total_returned, sale:sales(payment_method)');
+
+    if (shiftId) {
+      returnsQuery = returnsQuery.eq('shift_id', shiftId);
+    } else {
+      returnsQuery = returnsQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: returns, error: returnsError } = await returnsQuery;
+    if (returnsError) throw returnsError;
+
     const totals = {
       total_sales: 0,
       cash_sales: 0,
@@ -92,6 +106,8 @@ export const shiftService = {
       layaways: 0,
       total_expenses: 0,
       cash_expenses: 0,
+      total_returns: 0,
+      cash_returns: 0,
       expected_cash: 0
     };
 
@@ -116,6 +132,13 @@ export const shiftService = {
       // Por defecto, si no tiene método o es 'cash', se resta del efectivo
       if (exp.method === 'cash' || !exp.method) {
         totals.cash_expenses += exp.amount;
+      }
+    });
+
+    returns?.forEach((ret: any) => {
+      totals.total_returns += ret.total_returned;
+      if (ret.sale?.payment_method === 'cash') {
+        totals.cash_returns += ret.total_returned;
       }
     });
 

@@ -124,6 +124,7 @@ export interface SaleReturn {
   id: string;
   sale_id: string;
   user_id: string;
+  shift_id?: string;
   reason: string;
   total_returned: number;
   created_at: string;
@@ -138,6 +139,7 @@ export interface ReturnItem {
   product_id: string;
   quantity: number;
   price: number;
+  cost: number;
   created_at: string;
   // Joins
   product?: { name: string };
@@ -146,6 +148,7 @@ export interface ReturnItem {
 // Views
 export interface DashboardStats {
   sales_today: number;
+  returns_today: number;
   expenses_today: number;
   low_stock_count: number;
   pending_layaways: number;

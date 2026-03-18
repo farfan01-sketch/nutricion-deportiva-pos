@@ -60,14 +60,10 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     try {
       const totals = await shiftService.getShiftTotals(shiftId, openedAt, closedAt);
       // Lógica de efectivo esperado:
-      // Fondo inicial + Ventas en efectivo + Anticipos en efectivo - Gastos en efectivo
+      // Fondo inicial + Ventas en efectivo + Anticipos en efectivo - Gastos en efectivo - Devoluciones en efectivo
       const initialCash = openShift?.opening_cash || selectedShift?.opening_cash || 0;
       
-      // En este sistema, 'layaways' (apartados) ya están incluidos en 'cash_sales' si el método fue efectivo.
-      // Pero el usuario dice "más anticipos en efectivo si aplica". 
-      // Si el tipo es 'layaway' y el método es 'cash', ya está en cash_sales.
-      // Vamos a asegurarnos de que la lógica sea clara.
-      totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses;
+      totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0);
       setShiftTotals(totals);
     } catch (err) {
       console.error(err);
@@ -189,6 +185,10 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gastos</p>
               <h3 className="text-xl font-bold text-rose-600">{formatCurrency(shiftTotals.total_expenses)}</h3>
             </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Devoluciones</p>
+              <h3 className="text-xl font-bold text-amber-600">{formatCurrency(shiftTotals.total_returns || 0)}</h3>
+            </div>
             <div className="bg-primary-600 p-6 rounded-2xl shadow-lg shadow-primary-100 text-white">
               <p className="text-[10px] font-bold text-primary-100 uppercase tracking-wider mb-1">Efectivo Esperado</p>
               <h3 className="text-2xl font-black">{formatCurrency(shiftTotals.expected_cash)}</h3>
@@ -228,6 +228,10 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               <div className="p-4 bg-slate-50 rounded-xl">
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Gastos</p>
                 <p className="text-sm font-bold text-rose-600">{formatCurrency(shiftTotals.total_expenses)}</p>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Devoluciones</p>
+                <p className="text-sm font-bold text-amber-600">{formatCurrency(shiftTotals.total_returns || 0)}</p>
               </div>
             </div>
           </div>

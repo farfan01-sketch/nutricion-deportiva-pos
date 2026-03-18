@@ -14,6 +14,8 @@ interface ShiftReportProps {
     layaways: number;
     total_expenses: number;
     cash_expenses: number;
+    total_returns: number;
+    cash_returns: number;
     expected_cash: number;
   };
   user: User;
@@ -120,9 +122,13 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
             <span className="text-slate-500">Apartados (Anticipos)</span>
             <span className="font-bold text-slate-900">{formatCurrency(totals.layaways)}</span>
           </div>
+          <div className="flex justify-between text-sm text-amber-600 font-bold">
+            <span>Devoluciones</span>
+            <span>- {formatCurrency(totals.total_returns)}</span>
+          </div>
           <div className="pt-3 border-t border-slate-200 flex justify-between text-base">
-            <span className="font-bold text-slate-900">Total Ventas</span>
-            <span className="font-black text-primary-600">{formatCurrency(totals.total_sales)}</span>
+            <span className="font-bold text-slate-900">Ventas Netas</span>
+            <span className="font-black text-primary-600">{formatCurrency(totals.total_sales - totals.total_returns)}</span>
           </div>
         </div>
       </div>
