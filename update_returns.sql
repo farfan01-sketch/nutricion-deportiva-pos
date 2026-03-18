@@ -110,6 +110,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 4. Actualizar vista de estadísticas del dashboard
+DROP VIEW IF EXISTS dashboard_stats_view;
 CREATE OR REPLACE VIEW dashboard_stats_view AS
 SELECT 
   (SELECT COALESCE(SUM(total), 0) FROM sales WHERE status = 'completed' AND created_at::date = CURRENT_DATE) as sales_today,
