@@ -1,23 +1,35 @@
 import { supabase } from '../lib/supabase';
 import { Sale, SaleItem, Layaway } from '../types';
 
-export const saleService = {
-  async processSale(params: {
-    p_customer_id: string | null;
-    p_deposit: number;
-    p_discount: number;
-    p_items: any[];
-    p_payment_method: string;
-    p_subtotal: number;
-    p_total: number;
-    p_type: 'sale' | 'layaway';
-    p_user_id: string;
-    p_shift_id: string | null;
-  }): Promise<string> {
-    const { data, error } = await supabase.rpc('process_sale', params);
+type ProcessSaleParams = {
+  p_customer_id: string | null;
+  p_deposit: number;
+  p_discount: number;
+  p_items: any[];
+  p_payment_method: string;
+  p_subtotal: number;
+  p_total: number;
+  p_type: 'sale' | 'layaway';
+  p_user_id: string;
+  p_shift_id: string | null;
+};
 
-    if (error) throw error;
-    return data;
+export const saleService = {
+  async processSale(params: ProcessSaleParams): Promise<string> {
+    const safeParams = {
+      ...params,
+      // Fuerza un payload JSON limpio para evitar problemas entre json y jsonb
+      p_items: JSON.parse(JSON.stringify(params.p_items || [])),
+    };
+
+    const { data, error } = await supabase.rpc('process_sale', safeParams);
+
+    if (error) {
+      console.error('processSale error:', error);
+      throw error;
+    }
+
+    return data as string;
   },
 
   async getRecentSales(limit = 10): Promise<Sale[]> {
@@ -28,7 +40,7 @@ export const saleService = {
       .limit(limit);
 
     if (error) throw error;
-    return data || [];
+    return (data as Sale[]) || [];
   },
 
   async getSaleItems(saleId: string): Promise<SaleItem[]> {
@@ -43,7 +55,7 @@ export const saleService = {
       .eq('sale_id', saleId);
 
     if (error) throw error;
-    return (data as any) || [];
+    return (data as SaleItem[]) || [];
   },
 
   async getPendingLayaways(): Promise<Layaway[]> {
@@ -54,7 +66,7 @@ export const saleService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data as Layaway[]) || [];
   },
 
   async getHistory(filters?: {
@@ -75,19 +87,23 @@ export const saleService = {
     if (filters?.startDate) {
       query = query.gte('created_at', `${filters.startDate}T00:00:00`);
     }
+
     if (filters?.endDate) {
       query = query.lte('created_at', `${filters.endDate}T23:59:59`);
     }
+
     if (filters?.ticketNumber) {
       query = query.eq('ticket_number', filters.ticketNumber);
     }
+
     if (filters?.customerId) {
       query = query.eq('customer_id', filters.customerId);
     }
 
     const { data, error } = await query;
+
     if (error) throw error;
-    return data || [];
+    return (data as Sale[]) || [];
   },
 
   async getSaleById(id: string): Promise<Sale> {
@@ -98,6 +114,6 @@ export const saleService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Sale;
   }
 };
