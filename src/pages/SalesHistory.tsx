@@ -8,7 +8,10 @@ import {
   X,
   User as UserIcon,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RotateCcw,
+  Minus,
+  Plus
 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { saleService } from '../services/sales';
@@ -35,6 +38,13 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  
+  // Partial Return state
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [saleToReturn, setSaleToReturn] = useState<Sale | null>(null);
+  const [returnItems, setReturnItems] = useState<{ product_id: string; name: string; quantity: number; max: number; price: number; toReturn: number }[]>([]);
+  const [returnReason, setReturnReason] = useState('');
+  const [returning, setReturning] = useState(false);
   
   const [filters, setFilters] = useState({
     startDate: '',
@@ -110,6 +120,67 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
       alert(err.message || 'Error al cancelar la venta');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleOpenReturnModal = async (sale: Sale) => {
+    try {
+      const items = await saleService.getSaleItems(sale.id);
+      setSaleToReturn(sale);
+      setReturnItems(items.map(item => ({
+        product_id: item.product_id,
+        name: item.product?.name || 'Producto',
+        quantity: item.quantity,
+        max: item.quantity,
+        price: item.price,
+        toReturn: 0
+      })));
+      setReturnReason('');
+      setShowReturnModal(true);
+    } catch (err) {
+      alert('Error al cargar productos de la venta');
+    }
+  };
+
+  const handleUpdateReturnQty = (productId: string, delta: number) => {
+    setReturnItems(prev => prev.map(item => {
+      if (item.product_id === productId) {
+        const newVal = Math.max(0, Math.min(item.max, item.toReturn + delta));
+        return { ...item, toReturn: newVal };
+      }
+      return item;
+    }));
+  };
+
+  const handleProcessReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleToReturn) return;
+    
+    const itemsToReturn = returnItems.filter(i => i.toReturn > 0);
+    if (itemsToReturn.length === 0) {
+      alert('Selecciona al menos un producto para devolver');
+      return;
+    }
+
+    setReturning(true);
+    try {
+      await saleService.processPartialReturn({
+        p_sale_id: saleToReturn.id,
+        p_user_id: user.id,
+        p_reason: returnReason,
+        p_items: itemsToReturn.map(i => ({
+          product_id: i.product_id,
+          quantity: i.toReturn,
+          price: i.price
+        }))
+      });
+      setShowReturnModal(false);
+      loadSales();
+      alert('Devolución procesada exitosamente');
+    } catch (err: any) {
+      alert(err.message || 'Error al procesar la devolución');
+    } finally {
+      setReturning(false);
     }
   };
 
@@ -278,13 +349,22 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
                         <Eye size={18} />
                       </button>
                       {sale.status !== 'cancelled' && (
-                        <button 
-                          onClick={() => handleOpenCancelModal(sale)}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                          title="Cancelar Venta"
-                        >
-                          <XCircle size={18} />
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleOpenReturnModal(sale)}
+                            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                            title="Devolución Parcial"
+                          >
+                            <RotateCcw size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleOpenCancelModal(sale)}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            title="Cancelar Venta"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -366,6 +446,81 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
               className="flex-1 px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 disabled:opacity-50"
             >
               {cancelling ? 'Cancelando...' : 'Sí, Cancelar'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Partial Return Modal */}
+      <Modal
+        isOpen={showReturnModal}
+        onClose={() => !returning && setShowReturnModal(false)}
+        title="Devolución Parcial"
+        size="md"
+      >
+        <form onSubmit={handleProcessReturn} className="space-y-6">
+          <div className="bg-amber-50 p-4 rounded-xl flex items-start gap-3">
+            <AlertCircle className="text-amber-600 shrink-0" size={20} />
+            <p className="text-xs text-amber-800 leading-relaxed">
+              Selecciona los productos y cantidades que el cliente está devolviendo. El stock se actualizará automáticamente.
+            </p>
+          </div>
+
+          <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2">
+            {returnItems.map((item) => (
+              <div key={item.product_id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-900">{item.name}</p>
+                  <p className="text-[10px] text-slate-500">Vendido: {item.max} | Precio: {formatCurrency(item.price)}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateReturnQty(item.product_id, -1)}
+                    className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-8 text-center font-bold text-slate-900">{item.toReturn}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateReturnQty(item.product_id, 1)}
+                    className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Motivo de Devolución</label>
+            <textarea
+              required
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+              placeholder="Ej: Producto defectuoso, talla incorrecta..."
+              rows={2}
+            />
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="button"
+              disabled={returning}
+              onClick={() => setShowReturnModal(false)}
+              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={returning}
+              className="flex-1 px-6 py-3 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-200 disabled:opacity-50"
+            >
+              {returning ? 'Procesando...' : 'Procesar Devolución'}
             </button>
           </div>
         </form>

@@ -120,6 +120,29 @@ export interface Layaway {
   sales?: Sale;
 }
 
+export interface SaleReturn {
+  id: string;
+  sale_id: string;
+  user_id: string;
+  reason: string;
+  total_returned: number;
+  created_at: string;
+  // Joins
+  sale?: Sale;
+  user?: { name: string };
+}
+
+export interface ReturnItem {
+  id: string;
+  return_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  created_at: string;
+  // Joins
+  product?: { name: string };
+}
+
 // Views
 export interface DashboardStats {
   sales_today: number;

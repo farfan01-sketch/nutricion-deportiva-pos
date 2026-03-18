@@ -109,5 +109,17 @@ export const saleService = {
     });
 
     if (error) throw error;
+  },
+
+  async processPartialReturn(params: {
+    p_sale_id: string;
+    p_user_id: string;
+    p_reason: string;
+    p_items: { product_id: string; quantity: number; price: number }[];
+  }): Promise<string> {
+    const { data, error } = await supabase.rpc('process_partial_return', params);
+
+    if (error) throw error;
+    return data;
   }
 };
