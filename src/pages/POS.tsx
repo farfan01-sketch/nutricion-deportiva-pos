@@ -370,6 +370,20 @@ const POS: React.FC<POSProps> = ({ user }) => {
         size="sm"
       >
         <div className="space-y-6">
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+              <Receipt size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900">¡Venta Exitosa!</h3>
+            <p className="text-sm text-slate-500">
+              Ticket: <span className="font-mono font-bold text-primary-600">
+                {lastSaleData?.ticket_number 
+                  ? `ND-${String(lastSaleData.ticket_number).padStart(6, '0')}`
+                  : (lastSaleData?.id ? `ND-${lastSaleData.id.slice(0, 6).toUpperCase()}` : '...')
+                }
+              </span>
+            </p>
+          </div>
           <div className="bg-slate-50 rounded-xl p-4 overflow-hidden">
             <Ticket ref={ticketRef} sale={lastSaleData} items={lastSaleData?.items || cart} />
           </div>

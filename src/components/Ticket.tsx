@@ -20,7 +20,12 @@ const Ticket = React.forwardRef<HTMLDivElement, TicketProps>(({ sale, items, bus
       <div className="border-b border-dashed border-black pb-4 mb-4 space-y-1 text-xs">
         <div className="flex justify-between">
           <span>Ticket:</span>
-          <span>#{sale.ticket_number || (sale.id ? sale.id.slice(0, 8) : '...') }</span>
+          <span>
+            {sale.ticket_number 
+              ? `ND-${String(sale.ticket_number).padStart(6, '0')}`
+              : (sale.id ? `ND-${sale.id.slice(0, 6).toUpperCase()}` : '...')
+            }
+          </span>
         </div>
         <div className="flex justify-between">
           <span>Fecha:</span>

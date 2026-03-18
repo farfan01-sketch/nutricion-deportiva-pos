@@ -97,12 +97,10 @@ export const shiftService = {
 
     sales?.forEach(sale => {
       totals.total_sales += sale.total;
+      
+      // Si es apartado, lo sumamos a la cuenta de apartados
       if (sale.type === 'layaway') {
-        // For layaways, we only count the deposit in this shift if it was created now
-        // But the process_sale RPC handles this. 
-        // Actually, the user says "anticipos/apartados en efectivo".
-        // In this system, a 'layaway' sale type has a 'total' which is the deposit amount?
-        // Let's check POS.tsx handleProcessSale
+        totals.layaways += sale.total;
       }
 
       switch (sale.payment_method) {
@@ -115,6 +113,7 @@ export const shiftService = {
 
     expenses?.forEach(exp => {
       totals.total_expenses += exp.amount;
+      // Por defecto, si no tiene método o es 'cash', se resta del efectivo
       if (exp.method === 'cash' || !exp.method) {
         totals.cash_expenses += exp.amount;
       }

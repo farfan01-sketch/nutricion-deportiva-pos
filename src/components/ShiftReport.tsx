@@ -116,6 +116,10 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
               <span className="font-bold text-slate-900">{formatCurrency(totals.mixed_sales)}</span>
             </div>
           )}
+          <div className="flex justify-between text-sm pt-2 border-t border-slate-200/50">
+            <span className="text-slate-500">Apartados (Anticipos)</span>
+            <span className="font-bold text-slate-900">{formatCurrency(totals.layaways)}</span>
+          </div>
           <div className="pt-3 border-t border-slate-200 flex justify-between text-base">
             <span className="font-bold text-slate-900">Total Ventas</span>
             <span className="font-black text-primary-600">{formatCurrency(totals.total_sales)}</span>
@@ -124,11 +128,11 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
       </div>
 
       {/* Expenses & Cash */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="space-y-4">
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
             <Wallet size={14} className="text-rose-600" />
-            Gastos
+            Gastos en Efectivo
           </h3>
           <div className="bg-rose-50 rounded-2xl p-6">
             <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">Total Gastos</p>

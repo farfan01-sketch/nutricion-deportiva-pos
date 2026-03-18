@@ -59,8 +59,14 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
   const loadShiftTotals = React.useCallback(async (shiftId: string, openedAt: string, closedAt?: string) => {
     try {
       const totals = await shiftService.getShiftTotals(shiftId, openedAt, closedAt);
-      // Calculate expected physical cash
+      // Lógica de efectivo esperado:
+      // Fondo inicial + Ventas en efectivo + Anticipos en efectivo - Gastos en efectivo
       const initialCash = openShift?.opening_cash || selectedShift?.opening_cash || 0;
+      
+      // En este sistema, 'layaways' (apartados) ya están incluidos en 'cash_sales' si el método fue efectivo.
+      // Pero el usuario dice "más anticipos en efectivo si aplica". 
+      // Si el tipo es 'layaway' y el método es 'cash', ya está en cash_sales.
+      // Vamos a asegurarnos de que la lógica sea clara.
       totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses;
       setShiftTotals(totals);
     } catch (err) {

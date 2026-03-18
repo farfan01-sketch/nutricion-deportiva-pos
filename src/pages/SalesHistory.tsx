@@ -198,7 +198,12 @@ const SalesHistory: React.FC = () => {
               ) : sales.map((sale) => (
                 <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="font-mono text-xs font-bold text-primary-600">{sale.ticket_number}</span>
+                    <span className="font-mono text-xs font-bold text-primary-600">
+                      {sale.ticket_number 
+                        ? `ND-${String(sale.ticket_number).padStart(6, '0')}`
+                        : (sale.id ? `ND-${sale.id.slice(0, 6).toUpperCase()}` : '...')
+                      }
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm text-slate-900">{new Date(sale.created_at).toLocaleDateString()}</p>
