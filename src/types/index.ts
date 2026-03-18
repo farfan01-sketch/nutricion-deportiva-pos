@@ -126,6 +126,7 @@ export interface SaleReturn {
   user_id: string;
   shift_id?: string;
   reason: string;
+  return_method: 'cash' | 'card' | 'transfer';
   total_returned: number;
   created_at: string;
   // Joins
@@ -149,6 +150,9 @@ export interface ReturnItem {
 export interface DashboardStats {
   sales_today: number;
   returns_today: number;
+  cash_returns_today: number;
+  card_returns_today: number;
+  transfer_returns_today: number;
   expenses_today: number;
   low_stock_count: number;
   pending_layaways: number;

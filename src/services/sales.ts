@@ -116,6 +116,7 @@ export const saleService = {
     p_user_id: string;
     p_shift_id: string | null;
     p_reason: string;
+    p_return_method: 'cash' | 'card' | 'transfer';
     p_items: { product_id: string; quantity: number; price: number }[];
   }): Promise<string> {
     const { data, error } = await supabase.rpc('process_partial_return', params);

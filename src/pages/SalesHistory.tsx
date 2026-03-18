@@ -47,6 +47,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
   const [saleToReturn, setSaleToReturn] = useState<Sale | null>(null);
   const [returnItems, setReturnItems] = useState<{ product_id: string; name: string; quantity: number; max: number; price: number; toReturn: number }[]>([]);
   const [returnReason, setReturnReason] = useState('');
+  const [returnMethod, setReturnMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
   const [returning, setReturning] = useState(false);
   
   const [openShift, setOpenShift] = useState<any>(null);
@@ -162,6 +163,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
         };
       }));
       setReturnReason('');
+      setReturnMethod(sale.payment_method === 'mixed' ? 'cash' : (sale.payment_method as any) || 'cash');
       setShowReturnModal(true);
     } catch (err) {
       alert('Error al cargar productos de la venta');
@@ -195,6 +197,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
         p_user_id: user.id,
         p_shift_id: openShift?.id || null,
         p_reason: returnReason,
+        p_return_method: returnMethod,
         p_items: itemsToReturn.map(i => ({
           product_id: i.product_id,
           quantity: i.toReturn,
@@ -556,16 +559,30 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
             ))}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Motivo de Devolución</label>
-            <textarea
-              required
-              value={returnReason}
-              onChange={(e) => setReturnReason(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-              placeholder="Ej: Producto defectuoso, talla incorrecta..."
-              rows={2}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Motivo de Devolución</label>
+              <textarea
+                required
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                placeholder="Ej: Producto defectuoso..."
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Método de Devolución</label>
+              <select
+                value={returnMethod}
+                onChange={(e) => setReturnMethod(e.target.value as any)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+              >
+                <option value="cash">Efectivo</option>
+                <option value="card">Tarjeta</option>
+                <option value="transfer">Transferencia</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex gap-4">

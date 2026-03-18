@@ -16,6 +16,8 @@ interface ShiftReportProps {
     cash_expenses: number;
     total_returns: number;
     cash_returns: number;
+    card_returns: number;
+    transfer_returns: number;
     expected_cash: number;
   };
   user: User;
@@ -122,10 +124,28 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
             <span className="text-slate-500">Apartados (Anticipos)</span>
             <span className="font-bold text-slate-900">{formatCurrency(totals.layaways)}</span>
           </div>
-          <div className="flex justify-between text-sm text-amber-600 font-bold">
-            <span>Devoluciones</span>
+          <div className="flex justify-between text-sm text-amber-600 font-bold pt-2 border-t border-slate-200/50">
+            <span>Devoluciones Totales</span>
             <span>- {formatCurrency(totals.total_returns)}</span>
           </div>
+          {totals.cash_returns > 0 && (
+            <div className="flex justify-between text-[10px] text-amber-500 pl-4">
+              <span>Efectivo</span>
+              <span>- {formatCurrency(totals.cash_returns)}</span>
+            </div>
+          )}
+          {totals.card_returns > 0 && (
+            <div className="flex justify-between text-[10px] text-amber-500 pl-4">
+              <span>Tarjeta</span>
+              <span>- {formatCurrency(totals.card_returns)}</span>
+            </div>
+          )}
+          {totals.transfer_returns > 0 && (
+            <div className="flex justify-between text-[10px] text-amber-500 pl-4">
+              <span>Transferencia</span>
+              <span>- {formatCurrency(totals.transfer_returns)}</span>
+            </div>
+          )}
           <div className="pt-3 border-t border-slate-200 flex justify-between text-base">
             <span className="font-bold text-slate-900">Ventas Netas</span>
             <span className="font-black text-primary-600">{formatCurrency(totals.total_sales - totals.total_returns)}</span>

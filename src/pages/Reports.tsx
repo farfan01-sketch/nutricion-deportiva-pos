@@ -84,6 +84,28 @@ const Reports: React.FC = () => {
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Devoluciones Hoy</p>
           <h3 className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(stats?.returns_today || 0)}</h3>
+          {(stats?.cash_returns_today > 0 || stats?.card_returns_today > 0 || stats?.transfer_returns_today > 0) && (
+            <div className="mt-2 pt-2 border-t border-slate-50 space-y-1">
+              {stats?.cash_returns_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Efectivo:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.cash_returns_today)}</span>
+                </div>
+              )}
+              {stats?.card_returns_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Tarjeta:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.card_returns_today)}</span>
+                </div>
+              )}
+              {stats?.transfer_returns_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Transf:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.transfer_returns_today)}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">

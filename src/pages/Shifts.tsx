@@ -231,7 +231,12 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Devoluciones</p>
-                <p className="text-sm font-bold text-amber-600">{formatCurrency(shiftTotals.total_returns || 0)}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-amber-600">{formatCurrency(shiftTotals.total_returns || 0)}</p>
+                  {shiftTotals.cash_returns > 0 && (
+                    <p className="text-[9px] text-amber-500">Efectivo: -{formatCurrency(shiftTotals.cash_returns)}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

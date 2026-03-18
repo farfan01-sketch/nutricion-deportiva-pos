@@ -86,7 +86,7 @@ export const shiftService = {
     // Get returns
     let returnsQuery = supabase
       .from('sale_returns')
-      .select('total_returned, sale:sales(payment_method)');
+      .select('total_returned, return_method');
 
     if (shiftId) {
       returnsQuery = returnsQuery.eq('shift_id', shiftId);
@@ -108,6 +108,8 @@ export const shiftService = {
       cash_expenses: 0,
       total_returns: 0,
       cash_returns: 0,
+      card_returns: 0,
+      transfer_returns: 0,
       expected_cash: 0
     };
 
@@ -137,8 +139,12 @@ export const shiftService = {
 
     returns?.forEach((ret: any) => {
       totals.total_returns += ret.total_returned;
-      if (ret.sale?.payment_method === 'cash') {
+      if (ret.return_method === 'cash') {
         totals.cash_returns += ret.total_returned;
+      } else if (ret.return_method === 'card') {
+        totals.card_returns += ret.total_returned;
+      } else if (ret.return_method === 'transfer') {
+        totals.transfer_returns += ret.total_returned;
       }
     });
 
