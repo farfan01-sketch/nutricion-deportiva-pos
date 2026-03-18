@@ -381,23 +381,23 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
                       >
                         <Eye size={18} />
                       </button>
+                      {sale.status === 'completed' && (
+                        <button 
+                          onClick={() => handleOpenReturnModal(sale)}
+                          className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                          title="Devolución Parcial"
+                        >
+                          <RotateCcw size={18} />
+                        </button>
+                      )}
                       {sale.status !== 'cancelled' && (
-                        <>
-                          <button 
-                            onClick={() => handleOpenReturnModal(sale)}
-                            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                            title="Devolución Parcial"
-                          >
-                            <RotateCcw size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleOpenCancelModal(sale)}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                            title="Cancelar Venta"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        </>
+                        <button 
+                          onClick={() => handleOpenCancelModal(sale)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Cancelar Venta"
+                        >
+                          <XCircle size={18} />
+                        </button>
                       )}
                     </div>
                   </td>
