@@ -12,13 +12,22 @@ export const reportService = {
       return {
         sales_today: 0,
         returns_today: 0,
+        cash_returns_today: 0,
+        card_returns_today: 0,
+        transfer_returns_today: 0,
         expenses_today: 0,
         low_stock_count: 0,
         pending_layaways: 0,
         profit_today: 0
       };
     }
-    return data;
+
+    return {
+      ...data,
+      cash_returns_today: data.cash_returns_today || 0,
+      card_returns_today: data.card_returns_today || 0,
+      transfer_returns_today: data.transfer_returns_today || 0
+    };
   },
 
   async getLowStock(): Promise<LowStockProduct[]> {
