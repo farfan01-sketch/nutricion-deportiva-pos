@@ -117,7 +117,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <UserIcon size={16} className="text-slate-400" />
-                      <span>ID: {layaway.sales?.customer_id || 'N/A'}</span>
+                      <span>{layaway.sales?.customer?.name || 'N/A'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-900">

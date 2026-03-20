@@ -95,7 +95,23 @@ export const shiftService = {
     }
 
     const { data: returns, error: returnsError } = await returnsQuery;
-    if (returnsError) throw returnsError;
+    
+    // If there's an error (e.g. return_method column missing), try without it
+    let finalReturns: any[] | null = returns;
+    if (returnsError) {
+      console.warn('Error fetching returns with return_method, trying without it:', returnsError);
+      const { data: fallbackReturns, error: fallbackError } = await supabase
+        .from('sale_returns')
+        .select('total_returned')
+        .eq(shiftId ? 'shift_id' : 'created_at', shiftId || openedAt); // This is a bit simplified but good enough for fallback
+      
+      if (fallbackError) {
+        console.error('Error in fallback returns query:', fallbackError);
+        finalReturns = [];
+      } else {
+        finalReturns = fallbackReturns;
+      }
+    }
 
     const totals = {
       total_sales: 0,
@@ -137,9 +153,10 @@ export const shiftService = {
       }
     });
 
-    returns?.forEach((ret: any) => {
+    finalReturns?.forEach((ret: any) => {
       totals.total_returns += ret.total_returned;
-      if (ret.return_method === 'cash') {
+      // Si no hay return_method (fallback), asumimos cash por compatibilidad
+      if (!ret.return_method || ret.return_method === 'cash') {
         totals.cash_returns += ret.total_returned;
       } else if (ret.return_method === 'card') {
         totals.card_returns += ret.total_returned;

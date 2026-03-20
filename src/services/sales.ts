@@ -51,7 +51,7 @@ export const saleService = {
       .from('layaways')
       .select(`
         *,
-        sales (
+        sales!inner (
           *,
           customer:customers (
             name
