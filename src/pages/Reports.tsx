@@ -109,12 +109,43 @@ const Reports: React.FC = () => {
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+              <Receipt size={20} />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Abonos Apartados Hoy</p>
+          <h3 className="text-xl font-bold text-blue-600 mt-1">{formatCurrency(stats?.layaway_payments_today || 0)}</h3>
+          {(stats?.layaway_cash_payments_today > 0 || stats?.layaway_card_payments_today > 0 || stats?.layaway_transfer_payments_today > 0) && (
+            <div className="mt-2 pt-2 border-t border-slate-50 space-y-1">
+              {stats?.layaway_cash_payments_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Efectivo:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_cash_payments_today)}</span>
+                </div>
+              )}
+              {stats?.layaway_card_payments_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Tarjeta:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_card_payments_today)}</span>
+                </div>
+              )}
+              {stats?.layaway_transfer_payments_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Transf:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_transfer_payments_today)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
               <DollarSign size={20} />
             </div>
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Netas Hoy</p>
-          <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency((stats?.sales_today || 0) - (stats?.returns_today || 0))}</h3>
+          <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency((stats?.sales_today || 0) + (stats?.layaway_payments_today || 0) - (stats?.returns_today || 0))}</h3>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">

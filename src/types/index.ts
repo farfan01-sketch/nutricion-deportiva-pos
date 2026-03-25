@@ -168,6 +168,10 @@ export interface DashboardStats {
   low_stock_count: number;
   pending_layaways: number;
   profit_today: number;
+  layaway_payments_today: number;
+  layaway_cash_payments_today: number;
+  layaway_card_payments_today: number;
+  layaway_transfer_payments_today: number;
 }
 
 export interface LowStockProduct {

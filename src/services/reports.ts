@@ -18,7 +18,11 @@ export const reportService = {
         expenses_today: 0,
         low_stock_count: 0,
         pending_layaways: 0,
-        profit_today: 0
+        profit_today: 0,
+        layaway_payments_today: 0,
+        layaway_cash_payments_today: 0,
+        layaway_card_payments_today: 0,
+        layaway_transfer_payments_today: 0
       };
     }
 
@@ -26,7 +30,11 @@ export const reportService = {
       ...data,
       cash_returns_today: data.cash_returns_today || 0,
       card_returns_today: data.card_returns_today || 0,
-      transfer_returns_today: data.transfer_returns_today || 0
+      transfer_returns_today: data.transfer_returns_today || 0,
+      layaway_payments_today: data.layaway_payments_today || 0,
+      layaway_cash_payments_today: data.layaway_cash_payments_today || 0,
+      layaway_card_payments_today: data.layaway_card_payments_today || 0,
+      layaway_transfer_payments_today: data.layaway_transfer_payments_today || 0
     };
   },
 

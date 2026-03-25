@@ -43,6 +43,7 @@ const Dashboard: React.FC = () => {
 
   const cards = [
     { label: 'Ventas Hoy', value: stats?.sales_today || 0, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Abonos Hoy', value: stats?.layaway_payments_today || 0, icon: Receipt, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Gastos Hoy', value: stats?.expenses_today || 0, icon: TrendingDown, color: 'text-rose-600', bg: 'bg-rose-50' },
     { label: 'Utilidad Hoy', value: stats?.profit_today || 0, icon: DollarSign, color: 'text-primary-600', bg: 'bg-primary-50' },
     { label: 'Stock Bajo', value: stats?.low_stock_count || 0, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', unit: 'items' },

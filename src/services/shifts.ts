@@ -134,6 +134,9 @@ export const shiftService = {
       card_sales: 0,
       mixed_sales: 0,
       layaways: 0,
+      layaway_cash_payments: 0,
+      layaway_card_payments: 0,
+      layaway_transfer_payments: 0,
       total_expenses: 0,
       cash_expenses: 0,
       total_returns: 0,
@@ -163,9 +166,18 @@ export const shiftService = {
     layawayPayments?.forEach(payment => {
       totals.total_sales += payment.amount;
       switch (payment.payment_method) {
-        case 'cash': totals.cash_sales += payment.amount; break;
-        case 'transfer': totals.transfer_sales += payment.amount; break;
-        case 'card': totals.card_sales += payment.amount; break;
+        case 'cash': 
+          totals.cash_sales += payment.amount; 
+          totals.layaway_cash_payments += payment.amount;
+          break;
+        case 'transfer': 
+          totals.transfer_sales += payment.amount; 
+          totals.layaway_transfer_payments += payment.amount;
+          break;
+        case 'card': 
+          totals.card_sales += payment.amount; 
+          totals.layaway_card_payments += payment.amount;
+          break;
       }
     });
 

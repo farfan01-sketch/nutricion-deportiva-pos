@@ -12,6 +12,9 @@ interface ShiftReportProps {
     card_sales: number;
     mixed_sales: number;
     layaways: number;
+    layaway_cash_payments: number;
+    layaway_card_payments: number;
+    layaway_transfer_payments: number;
     total_expenses: number;
     cash_expenses: number;
     total_returns: number;
@@ -121,9 +124,27 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
             </div>
           )}
           <div className="flex justify-between text-sm pt-2 border-t border-slate-200/50">
-            <span className="text-slate-500">Apartados (Anticipos)</span>
-            <span className="font-bold text-slate-900">{formatCurrency(totals.layaways)}</span>
+            <span className="text-slate-500">Abonos Apartados</span>
+            <span className="font-bold text-slate-900">{formatCurrency(totals.layaway_cash_payments + totals.layaway_card_payments + totals.layaway_transfer_payments)}</span>
           </div>
+          {totals.layaway_cash_payments > 0 && (
+            <div className="flex justify-between text-[10px] text-slate-400 pl-4">
+              <span>Efectivo</span>
+              <span>{formatCurrency(totals.layaway_cash_payments)}</span>
+            </div>
+          )}
+          {totals.layaway_card_payments > 0 && (
+            <div className="flex justify-between text-[10px] text-slate-400 pl-4">
+              <span>Tarjeta</span>
+              <span>{formatCurrency(totals.layaway_card_payments)}</span>
+            </div>
+          )}
+          {totals.layaway_transfer_payments > 0 && (
+            <div className="flex justify-between text-[10px] text-slate-400 pl-4">
+              <span>Transferencia</span>
+              <span>{formatCurrency(totals.layaway_transfer_payments)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm text-amber-600 font-bold pt-2 border-t border-slate-200/50">
             <span>Devoluciones Totales</span>
             <span>- {formatCurrency(totals.total_returns)}</span>

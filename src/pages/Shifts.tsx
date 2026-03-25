@@ -121,7 +121,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     setIsModalOpen(true);
     // Load totals for this specific historical shift
     const totals = await shiftService.getShiftTotals(shift.id, shift.opened_at, shift.closed_at || undefined);
-    totals.expected_cash = shift.opening_cash + totals.cash_sales - totals.cash_expenses;
+    totals.expected_cash = shift.opening_cash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0);
     setShiftTotals(totals);
   };
 
@@ -223,7 +223,18 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Apartados</p>
-                <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.layaways)}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.layaway_cash_payments + shiftTotals.layaway_card_payments + shiftTotals.layaway_transfer_payments)}</p>
+                  {shiftTotals.layaway_cash_payments > 0 && (
+                    <p className="text-[9px] text-slate-500">Efectivo: {formatCurrency(shiftTotals.layaway_cash_payments)}</p>
+                  )}
+                  {shiftTotals.layaway_card_payments > 0 && (
+                    <p className="text-[9px] text-slate-500">Tarjeta: {formatCurrency(shiftTotals.layaway_card_payments)}</p>
+                  )}
+                  {shiftTotals.layaway_transfer_payments > 0 && (
+                    <p className="text-[9px] text-slate-500">Transf: {formatCurrency(shiftTotals.layaway_transfer_payments)}</p>
+                  )}
+                </div>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Gastos</p>
