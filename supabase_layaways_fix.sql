@@ -106,3 +106,18 @@ BEGIN
   RETURN v_sale_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 4. MIGRACIÓN: Insertar apartados existentes que no estén en la tabla layaways
+-- Esto asegura que las ventas de tipo 'layaway' previas aparezcan en el módulo.
+INSERT INTO layaways (sale_id, deposit, balance, status, created_at)
+SELECT 
+    s.id as sale_id,
+    s.total as deposit, -- Asumimos total como depósito si no tenemos el dato real de la migración
+    0 as balance,
+    'pending' as status,
+    s.created_at
+FROM sales s
+LEFT JOIN layaways l ON s.id = l.sale_id
+WHERE s.type = 'layaway' 
+AND s.status = 'pending'
+AND l.id IS NULL;

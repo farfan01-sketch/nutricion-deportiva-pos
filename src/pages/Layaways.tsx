@@ -55,10 +55,15 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
     }
   };
 
-  const filteredLayaways = layaways.filter(l => 
-    l.sales?.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
-    l.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredLayaways = layaways.filter(l => {
+    const ticketStr = l.sales?.ticket_number ? String(l.sales.ticket_number) : '';
+    const customerName = l.sales?.customer?.name?.toLowerCase() || '';
+    const searchLower = search.toLowerCase();
+    
+    return ticketStr.toLowerCase().includes(searchLower) ||
+           customerName.includes(searchLower) ||
+           l.id.toLowerCase().includes(searchLower);
+  });
 
   return (
     <div className="p-8 space-y-8">
