@@ -83,6 +83,20 @@ export const shiftService = {
     const { data: expenses, error: expensesError } = await expensesQuery;
     if (expensesError) throw expensesError;
 
+    // Get layaway payments
+    let layawayPaymentsQuery = supabase
+      .from('layaway_payments')
+      .select('amount, payment_method');
+
+    if (shiftId) {
+      layawayPaymentsQuery = layawayPaymentsQuery.eq('shift_id', shiftId);
+    } else {
+      layawayPaymentsQuery = layawayPaymentsQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: layawayPayments, error: layawayPaymentsError } = await layawayPaymentsQuery;
+    if (layawayPaymentsError) throw layawayPaymentsError;
+
     // Get returns
     let returnsQuery = supabase
       .from('sale_returns')
@@ -130,18 +144,28 @@ export const shiftService = {
     };
 
     sales?.forEach(sale => {
-      totals.total_sales += sale.total;
+      // Solo sumamos ventas normales, los apartados se cuentan por sus abonos
+      if (sale.type === 'sale') {
+        totals.total_sales += sale.total;
+        switch (sale.payment_method) {
+          case 'cash': totals.cash_sales += sale.total; break;
+          case 'transfer': totals.transfer_sales += sale.total; break;
+          case 'card': totals.card_sales += sale.total; break;
+          case 'mixed': totals.mixed_sales += sale.total; break;
+        }
+      }
       
-      // Si es apartado, lo sumamos a la cuenta de apartados
       if (sale.type === 'layaway') {
         totals.layaways += sale.total;
       }
+    });
 
-      switch (sale.payment_method) {
-        case 'cash': totals.cash_sales += sale.total; break;
-        case 'transfer': totals.transfer_sales += sale.total; break;
-        case 'card': totals.card_sales += sale.total; break;
-        case 'mixed': totals.mixed_sales += sale.total; break;
+    layawayPayments?.forEach(payment => {
+      totals.total_sales += payment.amount;
+      switch (payment.payment_method) {
+        case 'cash': totals.cash_sales += payment.amount; break;
+        case 'transfer': totals.transfer_sales += payment.amount; break;
+        case 'card': totals.card_sales += payment.amount; break;
       }
     });
 

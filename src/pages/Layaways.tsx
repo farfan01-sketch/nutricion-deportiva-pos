@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Search, Filter, Calendar, User as UserIcon, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { Receipt, Search, Filter, Calendar, User as UserIcon, Clock, XCircle, AlertCircle, DollarSign, CreditCard, Send, CheckCircle2 } from 'lucide-react';
 import { saleService } from '../services/sales';
+import { shiftService } from '../services/shifts';
 import { formatCurrency, formatDate } from '../utils/format';
 import { User } from '../types';
 import Modal from '../components/Modal';
@@ -12,6 +13,7 @@ interface LayawaysProps {
 const Layaways: React.FC<LayawaysProps> = ({ user }) => {
   const [layaways, setLayaways] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   
   // Cancellation state
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -19,16 +21,76 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
+  // Payment state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedLayaway, setSelectedLayaway] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [registering, setRegistering] = useState(false);
+  const [openShift, setOpenShift] = useState<any>(null);
+
   useEffect(() => {
-    loadLayaways();
+    loadData();
   }, []);
 
-  const loadLayaways = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const data = await saleService.getPendingLayaways();
-      setLayaways(data);
+      const [layawaysData, shiftData] = await Promise.all([
+        saleService.getPendingLayaways(),
+        shiftService.getOpenShift()
+      ]);
+      setLayaways(layawaysData);
+      setOpenShift(shiftData);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenPaymentModal = (layaway: any) => {
+    setSelectedLayaway(layaway);
+    setPaymentAmount('');
+    setPaymentMethod('cash');
+    setPaymentNotes('');
+    setShowPaymentModal(true);
+  };
+
+  const handleRegisterPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLayaway || !openShift) return;
+
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Por favor ingresa un monto válido');
+      return;
+    }
+
+    if (amount > selectedLayaway.balance) {
+      alert('El monto no puede ser mayor al saldo pendiente');
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      await saleService.registerLayawayPayment({
+        p_layaway_id: selectedLayaway.id,
+        p_amount: amount,
+        p_payment_method: paymentMethod,
+        p_user_id: user.id,
+        p_shift_id: openShift.id,
+        p_notes: paymentNotes
+      });
+      
+      setShowPaymentModal(false);
+      loadData();
+    } catch (err: any) {
+      console.error('Error registering payment:', err);
+      alert(err.message || 'Error al registrar el pago');
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -44,10 +106,9 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
     
     setCancelling(true);
     try {
-      // Usamos el sale_id del apartado para cancelar la venta relacionada
       await saleService.cancelSale(layawayToCancel.sale_id, cancelReason, user.id);
       setShowCancelModal(false);
-      loadLayaways();
+      loadData();
     } catch (err: any) {
       alert(err.message || 'Error al cancelar el apartado');
     } finally {
@@ -67,9 +128,17 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Apartados Pendientes</h1>
-        <p className="text-slate-500">Gestiona las ventas con pagos parciales y saldos pendientes.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Apartados Pendientes</h1>
+          <p className="text-slate-500">Gestiona las ventas con pagos parciales y saldos pendientes.</p>
+        </div>
+        {!openShift && (
+          <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl flex items-center gap-3 text-amber-800 animate-pulse">
+            <AlertCircle size={20} />
+            <p className="text-xs font-medium">Debes abrir caja para registrar pagos.</p>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -78,7 +147,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
-              placeholder="Buscar por ticket o ID..."
+              placeholder="Buscar por ticket, cliente o ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
@@ -97,14 +166,20 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                 <th className="px-6 py-4">Ticket / Fecha</th>
                 <th className="px-6 py-4">Cliente</th>
                 <th className="px-6 py-4">Total Venta</th>
-                <th className="px-6 py-4">Anticipo</th>
+                <th className="px-6 py-4">Abonado</th>
                 <th className="px-6 py-4">Saldo Pendiente</th>
                 <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredLayaways.map((layaway) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="p-12 text-center text-slate-400 text-sm">
+                    Cargando apartados...
+                  </td>
+                </tr>
+              ) : filteredLayaways.map((layaway) => (
                 <tr key={layaway.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -112,7 +187,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                         <Receipt size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900">#{layaway.sales?.ticket_number || (layaway.id ? layaway.id.slice(0, 8) : '...')}</p>
+                        <p className="text-sm font-bold text-slate-900">#{layaway.sales?.ticket_number || layaway.id.slice(0, 8)}</p>
                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
                           <Calendar size={10} /> {formatDate(layaway.created_at)}
                         </p>
@@ -122,7 +197,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <UserIcon size={16} className="text-slate-400" />
-                      <span>{layaway.sales?.customer?.name || 'N/A'}</span>
+                      <span>{layaway.sales?.customer?.name || 'Cliente General'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-bold text-slate-900">
@@ -149,7 +224,11 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <button className="text-primary-600 text-xs font-bold hover:underline">
+                      <button 
+                        onClick={() => handleOpenPaymentModal(layaway)}
+                        disabled={!openShift}
+                        className="text-primary-600 text-xs font-bold hover:underline disabled:opacity-30 disabled:no-underline"
+                      >
                         Registrar Pago
                       </button>
                       <button 
@@ -163,7 +242,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                   </td>
                 </tr>
               ))}
-              {filteredLayaways.length === 0 && (
+              {!loading && filteredLayaways.length === 0 && (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-slate-400 text-sm">
                     No hay apartados pendientes en este momento.
@@ -174,6 +253,110 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
           </table>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => !registering && setShowPaymentModal(false)}
+        title="Registrar Pago de Apartado"
+        size="md"
+      >
+        {selectedLayaway && (
+          <form onSubmit={handleRegisterPayment} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Saldo Pendiente</p>
+                <p className="text-2xl font-black text-rose-600">{formatCurrency(selectedLayaway.balance)}</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Venta</p>
+                <p className="text-2xl font-black text-slate-900">{formatCurrency(selectedLayaway.sales?.total || 0)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Monto del Abono</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    autoFocus
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    max={selectedLayaway.balance}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-xl font-bold"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Método de Pago</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'cash', label: 'Efectivo', icon: DollarSign },
+                    { id: 'card', label: 'Tarjeta', icon: CreditCard },
+                    { id: 'transfer', label: 'Transferencia', icon: Send }
+                  ].map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.id as any)}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                        paymentMethod === method.id
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
+                      }`}
+                    >
+                      <method.icon size={24} />
+                      <span className="text-xs font-bold">{method.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Notas (Opcional)</label>
+                <textarea
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                  placeholder="Ej: Pago parcial de quincena..."
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                disabled={registering}
+                onClick={() => setShowPaymentModal(false)}
+                className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={registering || !openShift}
+                className="flex-1 px-6 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {registering ? (
+                  'Registrando...'
+                ) : (
+                  <>
+                    <CheckCircle2 size={20} />
+                    Confirmar Pago
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       {/* Cancellation Modal */}
       <Modal

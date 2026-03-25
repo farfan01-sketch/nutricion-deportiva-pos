@@ -134,5 +134,17 @@ export const saleService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async registerLayawayPayment(params: {
+    p_layaway_id: string;
+    p_amount: number;
+    p_payment_method: string;
+    p_user_id: string;
+    p_shift_id: string | null;
+    p_notes: string;
+  }): Promise<void> {
+    const { error } = await supabase.rpc('register_layaway_payment', params);
+    if (error) throw error;
   }
 };

@@ -120,6 +120,17 @@ export interface Layaway {
   sales?: Sale;
 }
 
+export interface LayawayPayment {
+  id: string;
+  layaway_id: string;
+  amount: number;
+  payment_method: 'cash' | 'card' | 'transfer';
+  user_id: string;
+  shift_id?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface SaleReturn {
   id: string;
   sale_id: string;
