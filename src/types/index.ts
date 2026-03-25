@@ -128,6 +128,7 @@ export interface LayawayPayment {
   user_id: string;
   shift_id?: string;
   notes?: string;
+  receipt_number?: number;
   created_at: string;
 }
 

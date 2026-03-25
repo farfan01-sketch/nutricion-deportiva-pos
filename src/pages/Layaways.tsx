@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Receipt, Search, Filter, Calendar, User as UserIcon, Clock, XCircle, AlertCircle, DollarSign, CreditCard, Send, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Receipt, Search, Filter, Calendar, User as UserIcon, Clock, XCircle, AlertCircle, DollarSign, CreditCard, Send, CheckCircle2, Printer } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 import { saleService } from '../services/sales';
 import { shiftService } from '../services/shifts';
 import { formatCurrency, formatDate } from '../utils/format';
 import { User } from '../types';
 import Modal from '../components/Modal';
+import LayawayPaymentTicket from '../components/LayawayPaymentTicket';
 
 interface LayawaysProps {
   user: User;
@@ -29,6 +31,14 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [registering, setRegistering] = useState(false);
   const [openShift, setOpenShift] = useState<any>(null);
+
+  // Receipt state
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastPaymentData, setLastPaymentData] = useState<any>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    content: () => receiptRef.current,
+  });
 
   useEffect(() => {
     loadData();
@@ -75,7 +85,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
 
     setRegistering(true);
     try {
-      await saleService.registerLayawayPayment({
+      const result = await saleService.registerLayawayPayment({
         p_layaway_id: selectedLayaway.id,
         p_amount: amount,
         p_payment_method: paymentMethod,
@@ -84,7 +94,9 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
         p_notes: paymentNotes
       });
       
+      setLastPaymentData(result);
       setShowPaymentModal(false);
+      setShowReceipt(true);
       loadData();
     } catch (err: any) {
       console.error('Error registering payment:', err);
@@ -356,6 +368,53 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* Receipt Modal */}
+      <Modal
+        isOpen={showReceipt}
+        onClose={() => setShowReceipt(false)}
+        title="Pago Registrado"
+        size="sm"
+      >
+        <div className="space-y-6">
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900">¡Abono Registrado!</h3>
+            <p className="text-sm text-slate-500">
+              Folio: <span className="font-mono font-bold text-primary-600">
+                {lastPaymentData?.receipt_number 
+                  ? `AB-${String(lastPaymentData.receipt_number).padStart(6, '0')}`
+                  : (lastPaymentData?.id ? `AB-${lastPaymentData.id.slice(0, 6).toUpperCase()}` : '...')
+                }
+              </span>
+            </p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-4 overflow-hidden">
+            <LayawayPaymentTicket 
+              ref={receiptRef} 
+              payment={lastPaymentData} 
+              layaway={selectedLayaway} 
+            />
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={handlePrint}
+              className="flex-1 bg-primary-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+            >
+              <Printer size={20} />
+              Imprimir Recibo
+            </button>
+            <button
+              onClick={() => setShowReceipt(false)}
+              className="flex-1 bg-slate-100 text-slate-700 font-bold py-3 rounded-xl"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* Cancellation Modal */}

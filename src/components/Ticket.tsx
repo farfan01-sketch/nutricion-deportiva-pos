@@ -75,6 +75,20 @@ const Ticket = React.forwardRef<HTMLDivElement, TicketProps>(({ sale, items, bus
           <span>TOTAL:</span>
           <span>{formatCurrency(sale.total)}</span>
         </div>
+        
+        {sale.type === 'layaway' && sale.layaways && sale.layaways[0] && (
+          <div className="border-t border-dashed border-black mt-2 pt-2 space-y-1">
+            <div className="flex justify-between font-bold">
+              <span>ANTICIPO:</span>
+              <span>{formatCurrency(sale.layaways[0].deposit)}</span>
+            </div>
+            <div className="flex justify-between font-bold">
+              <span>SALDO PENDIENTE:</span>
+              <span>{formatCurrency(sale.layaways[0].balance)}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between pt-2">
           <span>Método:</span>
           <span className="capitalize">{sale.payment_method}</span>

@@ -101,10 +101,10 @@ export const saleService = {
     return data || [];
   },
 
-  async getSaleById(id: string): Promise<Sale> {
+  async getSaleById(id: string): Promise<Sale & { layaways?: Layaway[] }> {
     const { data, error } = await supabase
       .from('sales')
-      .select('*, customer:customers(name), user:users(name)')
+      .select('*, customer:customers(name), user:users(name), layaways(*)')
       .eq('id', id)
       .single();
 
@@ -143,8 +143,9 @@ export const saleService = {
     p_user_id: string;
     p_shift_id: string | null;
     p_notes: string;
-  }): Promise<void> {
-    const { error } = await supabase.rpc('register_layaway_payment', params);
+  }): Promise<any> {
+    const { data, error } = await supabase.rpc('register_layaway_payment', params);
     if (error) throw error;
+    return data;
   }
 };
