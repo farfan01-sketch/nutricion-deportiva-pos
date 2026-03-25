@@ -6,7 +6,8 @@ import {
   PieChart, 
   Download,
   DollarSign,
-  RotateCcw
+  RotateCcw,
+  Receipt
 } from 'lucide-react';
 import { 
   BarChart, 
