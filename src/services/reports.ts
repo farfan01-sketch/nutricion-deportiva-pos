@@ -17,6 +17,7 @@ export const reportService = {
         expenses_today: 0,
         layaway_payments_today: 0,
         profit_today: 0,
+        profit_margin_today: 0,
         tickets_today: 0,
         customers_today: 0,
         sales_cash_today: 0,

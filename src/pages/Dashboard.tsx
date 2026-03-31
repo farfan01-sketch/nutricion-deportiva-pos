@@ -175,7 +175,15 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+        <StatCard 
+          label="Utilidad Real" 
+          value={stats?.profit_today || 0} 
+          icon={DollarSign} 
+          color="primary"
+          subtext={`Margen: ${stats?.profit_margin_today.toFixed(1) || 0}%`}
+          isMain
+        />
         <StatCard 
           label="Ventas Brutas" 
           value={stats?.sales_gross_today || 0} 
@@ -212,11 +220,11 @@ const Dashboard: React.FC = () => {
           subtext="Ingresos por apartados"
         />
         <StatCard 
-          label="Utilidad Est." 
-          value={stats?.profit_today || 0} 
-          icon={DollarSign} 
-          color="primary"
-          subtext="Margen bruto estimado"
+          label="Valor Inventario" 
+          value={stats?.inventory_value || 0} 
+          icon={Package} 
+          color="amber"
+          subtext="Costo total stock"
         />
       </div>
 
@@ -487,11 +495,12 @@ interface StatCardProps {
   label: string;
   value: number;
   icon: any;
-  color: 'emerald' | 'rose' | 'blue' | 'orange' | 'indigo' | 'primary';
+  color: 'emerald' | 'rose' | 'blue' | 'orange' | 'indigo' | 'primary' | 'amber';
   subtext?: string;
+  isMain?: boolean;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color, subtext }) => {
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color, subtext, isMain }) => {
   const colors = {
     emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     rose: 'bg-rose-50 text-rose-600 border-rose-100',
@@ -499,16 +508,34 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color, su
     orange: 'bg-orange-50 text-orange-600 border-orange-100',
     indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
     primary: 'bg-primary-50 text-primary-600 border-primary-100',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
   };
 
   return (
-    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4 border", colors[color])}>
+    <div className={cn(
+      "p-5 rounded-3xl shadow-sm border transition-all hover:shadow-md",
+      isMain ? "bg-primary-600 border-primary-700 text-white shadow-primary-100" : "bg-white border-slate-100"
+    )}>
+      <div className={cn(
+        "w-10 h-10 rounded-xl flex items-center justify-center mb-4 border", 
+        isMain ? "bg-white/20 border-white/30 text-white" : colors[color]
+      )}>
         <Icon size={20} />
       </div>
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-      <h3 className="text-xl font-black text-slate-900 mt-1">{formatCurrency(value)}</h3>
-      {subtext && <p className="text-[10px] text-slate-400 mt-1 font-medium italic">{subtext}</p>}
+      <p className={cn(
+        "text-xs font-bold uppercase tracking-wider",
+        isMain ? "text-primary-100" : "text-slate-400"
+      )}>{label}</p>
+      <h3 className={cn(
+        "text-xl font-black mt-1",
+        isMain ? "text-white" : "text-slate-900"
+      )}>{formatCurrency(value)}</h3>
+      {subtext && (
+        <p className={cn(
+          "text-[10px] mt-1 font-medium italic",
+          isMain ? "text-primary-100" : "text-slate-400"
+        )}>{subtext}</p>
+      )}
     </div>
   );
 };

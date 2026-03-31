@@ -180,6 +180,7 @@ export interface DashboardStats {
   expenses_today: number;
   layaway_payments_today: number;
   profit_today: number;
+  profit_margin_today: number;
   tickets_today: number;
   customers_today: number;
 

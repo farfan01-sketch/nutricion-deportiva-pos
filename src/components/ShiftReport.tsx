@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { Shift, User } from '../types';
 import { formatCurrency, formatDate } from '../utils/format';
-import { Package, Clock, User as UserIcon, DollarSign, Receipt, Wallet, ArrowRightLeft } from 'lucide-react';
+import { Package, Clock, User as UserIcon, DollarSign, Receipt, Wallet, ArrowRightLeft, TrendingUp } from 'lucide-react';
 
 interface ShiftReportProps {
   shift: Shift;
@@ -22,6 +22,7 @@ interface ShiftReportProps {
     card_returns: number;
     transfer_returns: number;
     expected_cash: number;
+    real_profit: number;
   };
   user: User;
 }
@@ -58,6 +59,26 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
       <div className="grid grid-cols-2 gap-6 mb-8 py-6 border-y border-slate-100">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600">
+              <TrendingUp size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Ventas Totales</p>
+              <p className="text-sm font-black text-slate-900">{formatCurrency(totals.total_sales)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+              <DollarSign size={16} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Utilidad Real</p>
+              <p className="text-sm font-black text-emerald-600">{formatCurrency(totals.real_profit)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
               <Clock size={16} />
             </div>
@@ -68,31 +89,11 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-              <Clock size={16} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Cierre</p>
-              <p className="text-xs font-bold text-slate-900">{shift.closed_at ? formatDate(shift.closed_at) : 'En curso...'}</p>
-            </div>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
               <UserIcon size={16} />
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Cajero</p>
               <p className="text-xs font-bold text-slate-900">{shift.user?.name || user.name}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-              <DollarSign size={16} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Fondo Inicial</p>
-              <p className="text-xs font-bold text-slate-900">{formatCurrency(shift.opening_cash)}</p>
             </div>
           </div>
         </div>

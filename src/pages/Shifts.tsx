@@ -200,12 +200,17 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
                 <Clock size={12} /> {formatDate(openShift.opened_at)}
               </div>
             </div>
+            <div className="bg-primary-600 p-6 rounded-2xl shadow-lg shadow-primary-100 text-white">
+              <p className="text-[10px] font-bold text-primary-100 uppercase tracking-wider mb-1">Ventas Totales</p>
+              <h3 className="text-xl font-black">{formatCurrency(shiftTotals.total_sales)}</h3>
+            </div>
+            <div className="bg-emerald-600 p-6 rounded-2xl shadow-lg shadow-emerald-100 text-white">
+              <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-wider mb-1">Utilidad Real</p>
+              <h3 className="text-xl font-black">{formatCurrency(shiftTotals.real_profit)}</h3>
+            </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ventas Totales</p>
-              <h3 className="text-xl font-bold text-primary-600">{formatCurrency(shiftTotals.total_sales)}</h3>
-              <div className="mt-2 text-[10px] font-bold text-slate-400">
-                {shiftTotals.cash_sales > 0 && `Efectivo: ${formatCurrency(shiftTotals.cash_sales)}`}
-              </div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Efectivo Esperado</p>
+              <h3 className="text-xl font-bold text-emerald-600">{formatCurrency(shiftTotals.expected_cash)}</h3>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gastos</p>
@@ -214,10 +219,6 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Devoluciones</p>
               <h3 className="text-xl font-bold text-amber-600">{formatCurrency(shiftTotals.total_returns || 0)}</h3>
-            </div>
-            <div className="bg-primary-600 p-6 rounded-2xl shadow-lg shadow-primary-100 text-white">
-              <p className="text-[10px] font-bold text-primary-100 uppercase tracking-wider mb-1">Efectivo Esperado</p>
-              <h3 className="text-2xl font-black">{formatCurrency(shiftTotals.expected_cash)}</h3>
             </div>
           </div>
 

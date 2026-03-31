@@ -155,8 +155,48 @@ export const shiftService = {
       cash_returns: 0,
       card_returns: 0,
       transfer_returns: 0,
-      expected_cash: 0
+      expected_cash: 0,
+      total_cogs: 0,
+      real_profit: 0
     };
+
+    // Get sale items for COGS
+    let saleItemsQuery = supabase
+      .from('sale_items')
+      .select('quantity, cost, sales!inner(status, type, shift_id, created_at)')
+      .eq('sales.status', 'completed')
+      .eq('sales.type', 'sale');
+
+    if (shiftId) {
+      saleItemsQuery = saleItemsQuery.eq('sales.shift_id', shiftId);
+    } else {
+      saleItemsQuery = saleItemsQuery.gte('sales.created_at', openedAt).lte('sales.created_at', end);
+    }
+    const { data: saleItems } = await saleItemsQuery;
+
+    // Get return items for COGS recovery
+    let returnItemsQuery = supabase
+      .from('return_items')
+      .select('quantity, cost, sale_returns!inner(shift_id, created_at)');
+
+    if (shiftId) {
+      returnItemsQuery = returnItemsQuery.eq('sale_returns.shift_id', shiftId);
+    } else {
+      returnItemsQuery = returnItemsQuery.gte('sale_returns.created_at', openedAt).lte('sale_returns.created_at', end);
+    }
+    const { data: returnItems } = await returnItemsQuery;
+
+    let totalCogs = 0;
+    saleItems?.forEach(item => {
+      totalCogs += (item.cost * item.quantity);
+    });
+
+    let recoveredCogs = 0;
+    returnItems?.forEach(item => {
+      recoveredCogs += (item.cost * item.quantity);
+    });
+
+    totals.total_cogs = totalCogs - recoveredCogs;
 
     sales?.forEach(sale => {
       // Solo sumamos ventas normales, los apartados se cuentan por sus abonos
@@ -212,6 +252,8 @@ export const shiftService = {
         totals.transfer_returns += ret.total_returned;
       }
     });
+
+    totals.real_profit = (totals.total_sales - totals.total_returns) - totals.total_cogs - totals.total_expenses;
 
     return totals;
   },
