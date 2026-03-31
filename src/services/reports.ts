@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { DashboardStats, LowStockProduct, TopProduct, SaleProfit } from '../types';
+import { DashboardStats, LowStockProduct, TopProduct, SaleProfit, WeeklyTrend } from '../types';
 
 export const reportService = {
   async getDashboardStats(): Promise<DashboardStats> {
@@ -9,33 +9,45 @@ export const reportService = {
       .single();
 
     if (error) {
+      console.error('Error fetching dashboard stats:', error);
       return {
-        sales_today: 0,
+        sales_gross_today: 0,
         returns_today: 0,
-        cash_returns_today: 0,
-        card_returns_today: 0,
-        transfer_returns_today: 0,
+        sales_net_today: 0,
         expenses_today: 0,
-        low_stock_count: 0,
-        pending_layaways: 0,
-        profit_today: 0,
         layaway_payments_today: 0,
-        layaway_cash_payments_today: 0,
-        layaway_card_payments_today: 0,
-        layaway_transfer_payments_today: 0
+        profit_today: 0,
+        tickets_today: 0,
+        customers_today: 0,
+        sales_cash_today: 0,
+        sales_card_today: 0,
+        sales_transfer_today: 0,
+        returns_cash_today: 0,
+        returns_card_today: 0,
+        returns_transfer_today: 0,
+        layaway_cash_today: 0,
+        layaway_card_today: 0,
+        layaway_transfer_today: 0,
+        low_stock_count: 0,
+        total_products: 0,
+        inventory_value: 0,
+        pending_layaways: 0,
+        total_pending_amount: 0,
+        layaways_completed_today: 0
       };
     }
 
-    return {
-      ...data,
-      cash_returns_today: data.cash_returns_today || 0,
-      card_returns_today: data.card_returns_today || 0,
-      transfer_returns_today: data.transfer_returns_today || 0,
-      layaway_payments_today: data.layaway_payments_today || 0,
-      layaway_cash_payments_today: data.layaway_cash_payments_today || 0,
-      layaway_card_payments_today: data.layaway_card_payments_today || 0,
-      layaway_transfer_payments_today: data.layaway_transfer_payments_today || 0
-    };
+    return data;
+  },
+
+  async getWeeklyTrends(): Promise<WeeklyTrend[]> {
+    const { data, error } = await supabase
+      .from('weekly_trends_view')
+      .select('*')
+      .order('date', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
   },
 
   async getLowStock(): Promise<LowStockProduct[]> {

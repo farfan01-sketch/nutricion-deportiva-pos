@@ -173,19 +173,49 @@ export interface ReturnItem {
 
 // Views
 export interface DashboardStats {
-  sales_today: number;
+  // Resumen del día
+  sales_gross_today: number;
   returns_today: number;
-  cash_returns_today: number;
-  card_returns_today: number;
-  transfer_returns_today: number;
+  sales_net_today: number;
   expenses_today: number;
-  low_stock_count: number;
-  pending_layaways: number;
-  profit_today: number;
   layaway_payments_today: number;
-  layaway_cash_payments_today: number;
-  layaway_card_payments_today: number;
-  layaway_transfer_payments_today: number;
+  profit_today: number;
+  tickets_today: number;
+  customers_today: number;
+
+  // Desglose por método (Ventas)
+  sales_cash_today: number;
+  sales_card_today: number;
+  sales_transfer_today: number;
+
+  // Desglose por método (Devoluciones)
+  returns_cash_today: number;
+  returns_card_today: number;
+  returns_transfer_today: number;
+
+  // Desglose por método (Abonos)
+  layaway_cash_today: number;
+  layaway_card_today: number;
+  layaway_transfer_today: number;
+
+  // Productos
+  low_stock_count: number;
+  total_products: number;
+  inventory_value: number;
+
+  // Apartados
+  pending_layaways: number;
+  total_pending_amount: number;
+  layaways_completed_today: number;
+}
+
+export interface WeeklyTrend {
+  date: string;
+  sales: number;
+  returns: number;
+  expenses: number;
+  layaway_payments: number;
+  net_cash_flow: number;
 }
 
 export interface LowStockProduct {
