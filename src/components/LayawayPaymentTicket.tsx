@@ -15,7 +15,7 @@ const LayawayPaymentTicket = React.forwardRef<HTMLDivElement, LayawayPaymentTick
   if (!payment || !layaway) return null;
 
   return (
-    <div ref={ref} className="p-8 bg-white text-black font-mono text-sm w-[80mm] mx-auto">
+    <div ref={ref} className="p-8 bg-white text-black font-mono text-sm w-[80mm] mx-auto" style={{ fontFamily: 'monospace' }}>
       <div className="text-center mb-6">
         <h2 className="text-lg font-bold">{businessName}</h2>
         <p className="text-xs font-bold mt-1">RECIBO DE ABONO</p>

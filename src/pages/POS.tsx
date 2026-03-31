@@ -42,6 +42,9 @@ const POS: React.FC<POSProps> = ({ user }) => {
   const ticketRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     content: () => ticketRef.current,
+    documentTitle: `Ticket-ND-${lastSaleData?.ticket_number || 'Sale'}`,
+    removeAfterPrint: true,
+    suppressErrors: true,
   });
 
   useEffect(() => {

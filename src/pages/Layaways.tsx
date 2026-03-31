@@ -38,6 +38,9 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     content: () => receiptRef.current,
+    documentTitle: `Recibo-AB-${lastPaymentData?.receipt_number || 'Abono'}`,
+    removeAfterPrint: true,
+    suppressErrors: true,
   });
 
   useEffect(() => {

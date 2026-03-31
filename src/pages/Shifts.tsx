@@ -37,6 +37,9 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
   const reportRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     content: () => reportRef.current,
+    documentTitle: `Corte-Caja-${selectedShift?.id || 'Shift'}`,
+    removeAfterPrint: true,
+    suppressErrors: true,
   });
 
   useEffect(() => {

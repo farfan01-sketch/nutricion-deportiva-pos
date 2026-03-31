@@ -42,7 +42,7 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
   };
 
   return (
-    <div ref={ref} className="bg-white p-8 max-w-2xl mx-auto border border-slate-100 shadow-sm print:shadow-none print:border-none">
+    <div ref={ref} className="bg-white p-8 max-w-2xl mx-auto border border-slate-100 shadow-sm print:shadow-none print:border-none" style={{ fontFamily: 'sans-serif' }}>
       {/* Header */}
       <div className="text-center space-y-2 mb-8">
         <div className="flex justify-center mb-4">
