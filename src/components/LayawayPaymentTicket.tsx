@@ -83,7 +83,7 @@ const LayawayPaymentTicket = React.forwardRef<HTMLDivElement, LayawayPaymentTick
       )}
 
       <div className="text-center mt-8 text-[10px]">
-        <p>Estado del Apartado: {layaway.balance <= 0 ? 'LIQUIDADO' : 'PENDIENTE'}</p>
+        <p>Estado del Apartado: {(payment.new_balance ?? layaway.balance) <= 0 ? 'COMPLETADO' : 'PENDIENTE'}</p>
         <p className="mt-2">Conserve este recibo para su control de pagos</p>
       </div>
     </div>

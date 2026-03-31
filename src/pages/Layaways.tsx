@@ -230,9 +230,15 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 uppercase">
-                      <Clock size={12} /> Pendiente
-                    </span>
+                    {layaway.balance <= 0 ? (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase">
+                        <CheckCircle2 size={12} /> Completado
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 uppercase">
+                        <Clock size={12} /> Pendiente
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

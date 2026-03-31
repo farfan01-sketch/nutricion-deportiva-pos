@@ -372,7 +372,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
                       sale.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 
                       sale.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
                     }`}>
-                      {sale.status}
+                      {sale.status === 'completed' ? 'Completado' : sale.status === 'pending' ? 'Pendiente' : 'Cancelado'}
                     </span>
                   </td>
                   <td className="px-6 py-4">

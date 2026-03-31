@@ -86,6 +86,10 @@ const Ticket = React.forwardRef<HTMLDivElement, TicketProps>(({ sale, items, bus
               <span>SALDO PENDIENTE:</span>
               <span>{formatCurrency(sale.layaways[0].balance)}</span>
             </div>
+            <div className="flex justify-between font-bold">
+              <span>ESTADO:</span>
+              <span>{sale.layaways[0].balance <= 0 ? 'COMPLETADO' : 'PENDIENTE'}</span>
+            </div>
           </div>
         )}
 
