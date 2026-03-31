@@ -73,16 +73,16 @@ daily_expenses AS (
 ),
 daily_profit AS (
   SELECT 
-    COALESCE(SUM((si.price - si.cost) * si.quantity), 0) as sale_gross_profit,
-    COALESCE(SUM(si.cost * si.quantity), 0) as sale_cogs
+    COALESCE(SUM((si.price - COALESCE(si.cost, 0)) * si.quantity), 0) as sale_gross_profit,
+    COALESCE(SUM(COALESCE(si.cost, 0) * si.quantity), 0) as sale_cogs
   FROM sale_items si
   JOIN sales s ON si.sale_id = s.id
   WHERE s.status = 'completed' AND s.type = 'sale' AND s.created_at::date = CURRENT_DATE
 ),
 return_profit_loss AS (
   SELECT 
-    COALESCE(SUM((ri.price - ri.cost) * ri.quantity), 0) as return_gross_profit_loss,
-    COALESCE(SUM(ri.cost * ri.quantity), 0) as return_cogs_recovered
+    COALESCE(SUM((ri.price - COALESCE(ri.cost, 0)) * ri.quantity), 0) as return_gross_profit_loss,
+    COALESCE(SUM(COALESCE(ri.cost, 0) * ri.quantity), 0) as return_cogs_recovered
   FROM return_items ri
   JOIN sale_returns sr ON ri.return_id = sr.id
   WHERE sr.created_at::date = CURRENT_DATE

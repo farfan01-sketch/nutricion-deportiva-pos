@@ -181,7 +181,7 @@ const Dashboard: React.FC = () => {
           value={stats?.profit_today || 0} 
           icon={DollarSign} 
           color="primary"
-          subtext={`Margen: ${stats?.profit_margin_today.toFixed(1) || 0}%`}
+          subtext={`Margen: ${(stats?.profit_margin_today || 0).toFixed(1)}%`}
           isMain
         />
         <StatCard 

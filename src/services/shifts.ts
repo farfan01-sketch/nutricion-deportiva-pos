@@ -188,72 +188,89 @@ export const shiftService = {
 
     let totalCogs = 0;
     saleItems?.forEach(item => {
-      totalCogs += (item.cost * item.quantity);
+      const cost = Number(item.cost) || 0;
+      const quantity = Number(item.quantity) || 0;
+      totalCogs += (cost * quantity);
     });
 
     let recoveredCogs = 0;
     returnItems?.forEach(item => {
-      recoveredCogs += (item.cost * item.quantity);
+      const cost = Number(item.cost) || 0;
+      const quantity = Number(item.quantity) || 0;
+      recoveredCogs += (cost * quantity);
     });
 
     totals.total_cogs = totalCogs - recoveredCogs;
 
     sales?.forEach(sale => {
+      const total = Number(sale.total) || 0;
       // Solo sumamos ventas normales, los apartados se cuentan por sus abonos
       if (sale.type === 'sale') {
-        totals.total_sales += sale.total;
+        totals.total_sales += total;
         switch (sale.payment_method) {
-          case 'cash': totals.cash_sales += sale.total; break;
-          case 'transfer': totals.transfer_sales += sale.total; break;
-          case 'card': totals.card_sales += sale.total; break;
-          case 'mixed': totals.mixed_sales += sale.total; break;
+          case 'cash': totals.cash_sales += total; break;
+          case 'transfer': totals.transfer_sales += total; break;
+          case 'card': totals.card_sales += total; break;
+          case 'mixed': totals.mixed_sales += total; break;
         }
       }
       
       if (sale.type === 'layaway') {
-        totals.layaways += sale.total;
+        totals.layaways += total;
       }
     });
 
     layawayPayments?.forEach(payment => {
-      totals.total_sales += payment.amount;
+      const amount = Number(payment.amount) || 0;
+      totals.total_sales += amount;
       switch (payment.payment_method) {
         case 'cash': 
-          totals.cash_sales += payment.amount; 
-          totals.layaway_cash_payments += payment.amount;
+          totals.cash_sales += amount; 
+          totals.layaway_cash_payments += amount;
           break;
         case 'transfer': 
-          totals.transfer_sales += payment.amount; 
-          totals.layaway_transfer_payments += payment.amount;
+          totals.transfer_sales += amount; 
+          totals.layaway_transfer_payments += amount;
           break;
         case 'card': 
-          totals.card_sales += payment.amount; 
-          totals.layaway_card_payments += payment.amount;
+          totals.card_sales += amount; 
+          totals.layaway_card_payments += amount;
           break;
       }
     });
 
     expenses?.forEach(exp => {
-      totals.total_expenses += exp.amount;
+      const amount = Number(exp.amount) || 0;
+      totals.total_expenses += amount;
       // Por defecto, si no tiene método o es 'cash', se resta del efectivo
       if (exp.method === 'cash' || !exp.method) {
-        totals.cash_expenses += exp.amount;
+        totals.cash_expenses += amount;
       }
     });
 
     finalReturns?.forEach((ret: any) => {
-      totals.total_returns += ret.total_returned;
+      const totalReturned = Number(ret.total_returned) || 0;
+      totals.total_returns += totalReturned;
       // Si no hay return_method (fallback), asumimos cash por compatibilidad
       if (!ret.return_method || ret.return_method === 'cash') {
-        totals.cash_returns += ret.total_returned;
+        totals.cash_returns += totalReturned;
       } else if (ret.return_method === 'card') {
-        totals.card_returns += ret.total_returned;
+        totals.card_returns += totalReturned;
       } else if (ret.return_method === 'transfer') {
-        totals.transfer_returns += ret.total_returned;
+        totals.transfer_returns += totalReturned;
       }
     });
 
+    // Final validation to avoid NaN
+    totals.total_sales = Number(totals.total_sales) || 0;
+    totals.total_returns = Number(totals.total_returns) || 0;
+    totals.total_cogs = Number(totals.total_cogs) || 0;
+    totals.total_expenses = Number(totals.total_expenses) || 0;
+
     totals.real_profit = (totals.total_sales - totals.total_returns) - totals.total_cogs - totals.total_expenses;
+    
+    // Ensure expected_cash is also valid
+    totals.expected_cash = (Number(totals.cash_sales) || 0) - (Number(totals.cash_expenses) || 0) - (Number(totals.cash_returns) || 0);
 
     return totals;
   },
