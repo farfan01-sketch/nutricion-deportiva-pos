@@ -40,7 +40,19 @@ export const shiftService = {
         total_expenses: totals.total_expenses,
         difference: closingCash - totals.expected_cash,
         status: 'closed',
-        closed_at: new Date().toISOString()
+        closed_at: new Date().toISOString(),
+        
+        // Save audit metrics
+        cash_sales: totals.cash_sales,
+        card_sales: totals.card_sales,
+        transfer_sales: totals.transfer_sales,
+        layaway_cash: totals.layaway_cash_payments,
+        layaway_card: totals.layaway_card_payments,
+        layaway_transfer: totals.layaway_transfer_payments,
+        cash_expenses: totals.cash_expenses,
+        cash_returns: totals.cash_returns,
+        card_returns: totals.card_returns,
+        transfer_returns: totals.transfer_returns
       })
       .eq('id', id)
       .select()

@@ -106,45 +106,31 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
         </h3>
         <div className="bg-slate-50 rounded-2xl p-6 space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Ventas en Efectivo</span>
-            <span className="font-bold text-slate-900">{formatCurrency(totals.cash_sales)}</span>
+            <span className="text-slate-500">Ventas Directas (Efectivo)</span>
+            <span className="font-bold text-slate-900">{formatCurrency(totals.cash_sales - totals.layaway_cash_payments)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Ventas Transferencia</span>
-            <span className="font-bold text-slate-900">{formatCurrency(totals.transfer_sales)}</span>
+            <span className="text-slate-500">Ventas Directas (Transf/Tarj)</span>
+            <span className="font-bold text-slate-900">{formatCurrency(totals.transfer_sales + totals.card_sales - totals.layaway_transfer_payments - totals.layaway_card_payments)}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Ventas Tarjeta</span>
-            <span className="font-bold text-slate-900">{formatCurrency(totals.card_sales)}</span>
-          </div>
-          {totals.mixed_sales > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Ventas Mixtas</span>
-              <span className="font-bold text-slate-900">{formatCurrency(totals.mixed_sales)}</span>
-            </div>
-          )}
           <div className="flex justify-between text-sm pt-2 border-t border-slate-200/50">
-            <span className="text-slate-500">Abonos Apartados</span>
-            <span className="font-bold text-slate-900">{formatCurrency(totals.layaway_cash_payments + totals.layaway_card_payments + totals.layaway_transfer_payments)}</span>
+            <span className="text-slate-500 font-bold">Abonos Apartados</span>
+            <span className="font-bold text-emerald-600">{formatCurrency(totals.layaway_cash_payments + totals.layaway_card_payments + totals.layaway_transfer_payments)}</span>
           </div>
-          {totals.layaway_cash_payments > 0 && (
-            <div className="flex justify-between text-[10px] text-slate-400 pl-4">
-              <span>Efectivo</span>
-              <span>{formatCurrency(totals.layaway_cash_payments)}</span>
-            </div>
-          )}
-          {totals.layaway_card_payments > 0 && (
-            <div className="flex justify-between text-[10px] text-slate-400 pl-4">
-              <span>Tarjeta</span>
-              <span>{formatCurrency(totals.layaway_card_payments)}</span>
-            </div>
-          )}
-          {totals.layaway_transfer_payments > 0 && (
-            <div className="flex justify-between text-[10px] text-slate-400 pl-4">
-              <span>Transferencia</span>
-              <span>{formatCurrency(totals.layaway_transfer_payments)}</span>
-            </div>
-          )}
+          <div className="flex flex-col space-y-1 pl-4 border-l-2 border-slate-200">
+            {totals.layaway_cash_payments > 0 && (
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>Efectivo</span>
+                <span>{formatCurrency(totals.layaway_cash_payments)}</span>
+              </div>
+            )}
+            {(totals.layaway_card_payments > 0 || totals.layaway_transfer_payments > 0) && (
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>Otros Métodos</span>
+                <span>{formatCurrency(totals.layaway_card_payments + totals.layaway_transfer_payments)}</span>
+              </div>
+            )}
+          </div>
           <div className="flex justify-between text-sm text-amber-600 font-bold pt-2 border-t border-slate-200/50">
             <span>Devoluciones Totales</span>
             <span>- {formatCurrency(totals.total_returns)}</span>
@@ -155,20 +141,8 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
               <span>- {formatCurrency(totals.cash_returns)}</span>
             </div>
           )}
-          {totals.card_returns > 0 && (
-            <div className="flex justify-between text-[10px] text-amber-500 pl-4">
-              <span>Tarjeta</span>
-              <span>- {formatCurrency(totals.card_returns)}</span>
-            </div>
-          )}
-          {totals.transfer_returns > 0 && (
-            <div className="flex justify-between text-[10px] text-amber-500 pl-4">
-              <span>Transferencia</span>
-              <span>- {formatCurrency(totals.transfer_returns)}</span>
-            </div>
-          )}
           <div className="pt-3 border-t border-slate-200 flex justify-between text-base">
-            <span className="font-bold text-slate-900">Ventas Netas</span>
+            <span className="font-bold text-slate-900">Total Ingresos Turno</span>
             <span className="font-black text-primary-600">{formatCurrency(totals.total_sales - totals.total_returns)}</span>
           </div>
         </div>

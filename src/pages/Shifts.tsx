@@ -59,10 +59,11 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
   const loadShiftTotals = React.useCallback(async (shiftId: string, openedAt: string, closedAt?: string) => {
     try {
       const totals = await shiftService.getShiftTotals(shiftId, openedAt, closedAt);
-      // Lógica de efectivo esperado:
-      // Fondo inicial + Ventas en efectivo + Anticipos en efectivo - Gastos en efectivo - Devoluciones en efectivo
       const initialCash = openShift?.opening_cash || selectedShift?.opening_cash || 0;
       
+      // Fórmula de efectivo esperado:
+      // Fondo inicial + Ventas en efectivo + Abonos en efectivo - Gastos en efectivo - Devoluciones en efectivo
+      // Nota: totals.cash_sales ya incluye abonos en efectivo según shiftService.getShiftTotals
       totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0);
       setShiftTotals(totals);
     } catch (err) {
@@ -119,10 +120,32 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     setSelectedShift(shift);
     setModalType('view');
     setIsModalOpen(true);
-    // Load totals for this specific historical shift
-    const totals = await shiftService.getShiftTotals(shift.id, shift.opened_at, shift.closed_at || undefined);
-    totals.expected_cash = shift.opening_cash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0);
-    setShiftTotals(totals);
+    
+    // Si el turno está cerrado y tiene columnas de auditoría, las usamos directamente
+    if (shift.status === 'closed' && shift.cash_sales !== undefined) {
+      const totals = {
+        total_sales: shift.total_sales,
+        cash_sales: shift.cash_sales,
+        card_sales: shift.card_sales,
+        transfer_sales: shift.transfer_sales,
+        layaway_cash_payments: shift.layaway_cash || 0,
+        layaway_card_payments: shift.layaway_card || 0,
+        layaway_transfer_payments: shift.layaway_transfer || 0,
+        total_expenses: shift.total_expenses,
+        cash_expenses: shift.cash_expenses || 0,
+        total_returns: (shift.cash_returns || 0) + (shift.card_returns || 0) + (shift.transfer_returns || 0),
+        cash_returns: shift.cash_returns || 0,
+        card_returns: shift.card_returns || 0,
+        transfer_returns: shift.transfer_returns || 0,
+        expected_cash: shift.expected_cash
+      };
+      setShiftTotals(totals);
+    } else {
+      // Si no tiene auditoría (turnos viejos), calculamos sobre la marcha
+      const totals = await shiftService.getShiftTotals(shift.id, shift.opened_at, shift.closed_at || undefined);
+      totals.expected_cash = shift.expected_cash || (shift.opening_cash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0));
+      setShiftTotals(totals);
+    }
   };
 
   const openCloseModal = () => {
@@ -210,44 +233,32 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="p-4 bg-slate-50 rounded-xl">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Efectivo</p>
-                <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.cash_sales)}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Ventas Efectivo</p>
+                <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.cash_sales - shiftTotals.layaway_cash_payments)}</p>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Transferencia</p>
-                <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.transfer_sales)}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Ventas Transf/Tarj</p>
+                <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.transfer_sales + shiftTotals.card_sales - shiftTotals.layaway_transfer_payments - shiftTotals.layaway_card_payments)}</p>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tarjeta</p>
-                <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.card_sales)}</p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-xl">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Apartados</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Abonos Apartados</p>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-slate-900">{formatCurrency(shiftTotals.layaway_cash_payments + shiftTotals.layaway_card_payments + shiftTotals.layaway_transfer_payments)}</p>
-                  {shiftTotals.layaway_cash_payments > 0 && (
-                    <p className="text-[9px] text-slate-500">Efectivo: {formatCurrency(shiftTotals.layaway_cash_payments)}</p>
-                  )}
-                  {shiftTotals.layaway_card_payments > 0 && (
-                    <p className="text-[9px] text-slate-500">Tarjeta: {formatCurrency(shiftTotals.layaway_card_payments)}</p>
-                  )}
-                  {shiftTotals.layaway_transfer_payments > 0 && (
-                    <p className="text-[9px] text-slate-500">Transf: {formatCurrency(shiftTotals.layaway_transfer_payments)}</p>
-                  )}
+                  <p className="text-sm font-bold text-emerald-600">{formatCurrency(shiftTotals.layaway_cash_payments + shiftTotals.layaway_card_payments + shiftTotals.layaway_transfer_payments)}</p>
+                  <div className="flex flex-col text-[9px] text-slate-500">
+                    {shiftTotals.layaway_cash_payments > 0 && <span>Efectivo: {formatCurrency(shiftTotals.layaway_cash_payments)}</span>}
+                    {(shiftTotals.layaway_card_payments > 0 || shiftTotals.layaway_transfer_payments > 0) && (
+                      <span>Otros: {formatCurrency(shiftTotals.layaway_card_payments + shiftTotals.layaway_transfer_payments)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Gastos</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Gastos (Efectivo)</p>
                 <p className="text-sm font-bold text-rose-600">{formatCurrency(shiftTotals.total_expenses)}</p>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl">
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Devoluciones</p>
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-amber-600">{formatCurrency(shiftTotals.total_returns || 0)}</p>
-                  {shiftTotals.cash_returns > 0 && (
-                    <p className="text-[9px] text-amber-500">Efectivo: -{formatCurrency(shiftTotals.cash_returns)}</p>
-                  )}
-                </div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Devoluciones (Efectivo)</p>
+                <p className="text-sm font-bold text-amber-600">{formatCurrency(shiftTotals.cash_returns || 0)}</p>
               </div>
             </div>
           </div>

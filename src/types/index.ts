@@ -96,6 +96,19 @@ export interface Shift {
   status: 'open' | 'closed';
   notes?: string;
   created_at: string;
+  
+  // Audit columns
+  cash_sales?: number;
+  card_sales?: number;
+  transfer_sales?: number;
+  layaway_cash?: number;
+  layaway_card?: number;
+  layaway_transfer?: number;
+  cash_expenses?: number;
+  cash_returns?: number;
+  card_returns?: number;
+  transfer_returns?: number;
+
   // Joins
   user?: { name: string };
 }
