@@ -6,7 +6,6 @@ import {
   Receipt, 
   DollarSign,
   AlertTriangle,
-  ArrowRight,
   CreditCard,
   Wallet,
   ArrowUpRight,
@@ -28,8 +27,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
   Legend
 } from 'recharts';
 import { reportService } from '../services/reports';
@@ -286,7 +283,7 @@ const Dashboard: React.FC = () => {
                   paddingAngle={8}
                   dataKey="value"
                 >
-                  {paymentData.map((entry, index) => (
+                  {paymentData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
