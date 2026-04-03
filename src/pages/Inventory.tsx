@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Package, AlertTriangle, History, Search, Filter, ArrowUpRight, 
-  ArrowDownLeft, Plus, Settings2, FileText, Activity, 
-  Printer, Download, Barcode, RefreshCw, Save, Trash2,
-  ChevronRight, MoreVertical, Eye
+  Package, AlertTriangle, History, Search, Plus, Settings2, FileText, Activity, 
+  Printer, Download, Barcode, RefreshCw, Save
 } from 'lucide-react';
 import { productService } from '../services/products';
 import { reportService } from '../services/reports';
@@ -11,6 +9,7 @@ import { inventoryService } from '../services/inventory';
 import { Product, LowStockProduct, InventoryMovement, User } from '../types';
 import { formatDate, formatCurrency } from '../utils/format';
 import { usePermissions } from '../hooks/usePermissions';
+import { useBarcodeInput } from '../hooks/useBarcodeInput';
 import { cn } from '../lib/utils';
 
 type InventoryView = 'ADD' | 'ADJUST' | 'LOW_STOCK' | 'REPORT_INV' | 'REPORT_MOV' | 'KARDEX';
@@ -37,9 +36,9 @@ const Inventory: React.FC<InventoryProps> = ({ user }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
       {/* Barra de Acciones Superior */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-30">
+      <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-30 print:hidden">
         <div className="flex items-center gap-4">
           <div className="bg-primary-600 p-2 rounded-lg text-white">
             <Package size={20} />
@@ -50,7 +49,7 @@ const Inventory: React.FC<InventoryProps> = ({ user }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto max-w-full">
           <NavButton 
             active={currentView === 'ADD'} 
             onClick={() => setCurrentView('ADD')}
@@ -114,7 +113,7 @@ const NavButton: React.FC<{
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+      "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
       active 
         ? "bg-white text-primary-600 shadow-sm ring-1 ring-slate-200" 
         : "text-slate-500 hover:bg-slate-200 hover:text-slate-700",
@@ -136,24 +135,20 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
   const [priceWholesale, setPriceWholesale] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const barcodeRef = useRef<HTMLInputElement>(null);
+  
   const qtyRef = useRef<HTMLInputElement>(null);
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!barcode.trim()) return;
-
+  const handleSearch = async (code: string) => {
     setLoading(true);
     setError(null);
     try {
-      const p = await productService.getByCode(barcode);
+      const p = await productService.getByCode(code);
       if (p) {
         setProduct(p);
         setCost(p.cost);
         setPriceRetail(p.price_retail);
         setPriceWholesale(p.price_wholesale);
         setQuantity(0);
-        // Focus quantity input after a small delay
         setTimeout(() => qtyRef.current?.focus(), 100);
       } else {
         setError('Producto no encontrado. Verifique el código.');
@@ -165,6 +160,10 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
       setLoading(false);
     }
   };
+
+  const { inputRef: barcodeRef, handleKeyDown } = useBarcodeInput({ 
+    onScan: handleSearch 
+  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,7 +208,7 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
 
         <div className="p-8 space-y-8">
           {/* Buscador */}
-          <form onSubmit={handleSearch} className="flex gap-4">
+          <div className="flex gap-4">
             <div className="relative flex-1">
               <Barcode className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
@@ -218,19 +217,20 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
                 placeholder="Escanee o escriba el código de barras..."
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 focus:border-primary-500 outline-none transition-all text-lg font-mono"
                 autoFocus
               />
             </div>
             <button 
-              type="submit"
+              onClick={() => handleSearch(barcode)}
               disabled={loading}
               className="px-8 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2"
             >
               {loading ? <RefreshCw className="animate-spin" size={20} /> : <Search size={20} />}
               Buscar
             </button>
-          </form>
+          </div>
 
           {error && (
             <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 text-sm font-bold animate-in fade-in slide-in-from-top-2">
@@ -332,17 +332,14 @@ const AdjustInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const barcodeRef = useRef<HTMLInputElement>(null);
+  
   const adjustRef = useRef<HTMLInputElement>(null);
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!barcode.trim()) return;
-
+  const handleSearch = async (code: string) => {
     setLoading(true);
     setError(null);
     try {
-      const p = await productService.getByCode(barcode);
+      const p = await productService.getByCode(code);
       if (p) {
         setProduct(p);
         setNewStock(p.stock);
@@ -358,6 +355,10 @@ const AdjustInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
       setLoading(false);
     }
   };
+
+  const { inputRef: barcodeRef, handleKeyDown } = useBarcodeInput({ 
+    onScan: handleSearch 
+  });
 
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -397,7 +398,7 @@ const AdjustInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
         </div>
 
         <div className="p-8 space-y-8">
-          <form onSubmit={handleSearch} className="flex gap-4">
+          <div className="flex gap-4">
             <div className="relative flex-1">
               <Barcode className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
@@ -406,14 +407,18 @@ const AdjustInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
                 placeholder="Código de barras..."
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 focus:border-amber-500 outline-none transition-all text-lg font-mono"
                 autoFocus
               />
             </div>
-            <button type="submit" className="px-8 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">
+            <button 
+              onClick={() => handleSearch(barcode)}
+              className="px-8 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all"
+            >
               Buscar
             </button>
-          </form>
+          </div>
 
           {error && <div className="p-4 bg-rose-50 text-rose-600 rounded-xl font-bold text-sm">{error}</div>}
 
@@ -595,6 +600,30 @@ const InventoryReportView: React.FC = () => {
     window.print();
   };
 
+  const handleExport = () => {
+    const headers = ['Código', 'Descripción', 'Marca', 'Costo', 'P. Venta', 'Existencia', 'Valor Total'];
+    const rows = products.map(p => [
+      p.code,
+      p.name,
+      p.brand,
+      p.cost,
+      p.price_retail,
+      p.stock,
+      p.cost * p.stock
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `reporte_inventario_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-8 space-y-6 print:p-0">
       {/* Totales */}
@@ -614,7 +643,10 @@ const InventoryReportView: React.FC = () => {
           >
             <Printer size={16} /> Imprimir
           </button>
-          <button className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all">
+          <button 
+            onClick={handleExport}
+            className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all"
+          >
             <Download size={16} /> Exportar
           </button>
         </div>
@@ -826,16 +858,12 @@ const KardexView: React.FC = () => {
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const barcodeRef = useRef<HTMLInputElement>(null);
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!barcode.trim()) return;
-
+  const handleSearch = async (code: string) => {
     setLoading(true);
     setError(null);
     try {
-      const p = await productService.getByCode(barcode);
+      const p = await productService.getByCode(code);
       if (p) {
         setProduct(p);
         const history = await inventoryService.getKardex(p.id);
@@ -852,6 +880,10 @@ const KardexView: React.FC = () => {
     }
   };
 
+  const { inputRef: barcodeRef, handleKeyDown } = useBarcodeInput({ 
+    onScan: handleSearch 
+  });
+
   // Reconstrucción de existencias acumuladas para el Kardex
   let runningStock = 0;
   const kardexData = movements.map(m => {
@@ -861,16 +893,30 @@ const KardexView: React.FC = () => {
     return { ...m, balance: runningStock, prevStock };
   }).reverse(); // Show latest first in table
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8 print:p-0">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print:border-none print:shadow-none">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50 print:bg-white">
-          <h2 className="text-lg font-bold text-slate-900">Kardex de Inventario</h2>
-          <p className="text-xs text-slate-500">Consulta el historial cronológico de existencias por producto.</p>
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50 print:bg-white flex justify-between items-center">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Kardex de Inventario</h2>
+            <p className="text-xs text-slate-500">Consulta el historial cronológico de existencias por producto.</p>
+          </div>
+          {product && (
+            <button 
+              onClick={handlePrint}
+              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-all print:hidden"
+            >
+              <Printer size={20} />
+            </button>
+          )}
         </div>
 
         <div className="p-8 space-y-8">
-          <form onSubmit={handleSearch} className="flex gap-4 print:hidden">
+          <div className="flex gap-4 print:hidden">
             <div className="relative flex-1">
               <Barcode className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
@@ -879,14 +925,25 @@ const KardexView: React.FC = () => {
                 placeholder="Escanee el código para ver el Kardex..."
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 focus:border-primary-500 outline-none transition-all text-lg font-mono"
                 autoFocus
               />
             </div>
-            <button type="submit" className="px-8 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">
+            <button 
+              onClick={() => handleSearch(barcode)}
+              className="px-8 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all"
+            >
               Consultar
             </button>
-          </form>
+          </div>
+
+          {error && (
+            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+              <AlertTriangle size={18} />
+              {error}
+            </div>
+          )}
 
           {product && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
