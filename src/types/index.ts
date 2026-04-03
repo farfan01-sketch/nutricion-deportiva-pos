@@ -122,7 +122,14 @@ export interface InventoryMovement {
   quantity: number;
   reason: string;
   user_id: string;
+  reference_type?: string;
   created_at: string;
+  // Joins
+  products?: {
+    name: string;
+    code: string;
+    brand: string;
+  };
 }
 
 export interface Layaway {

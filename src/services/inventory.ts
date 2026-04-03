@@ -14,6 +14,8 @@ export const inventoryService = {
   },
 
   async createMovement(movement: Partial<InventoryMovement>): Promise<InventoryMovement> {
+    // Si el usuario ya ejecutó el SQL del TRIGGER, esto es suficiente.
+    // Si no, el stock no se actualizará automáticamente en la tabla 'products'.
     const { data, error } = await supabase
       .from('inventory_movements')
       .insert([movement])
@@ -21,27 +23,6 @@ export const inventoryService = {
       .single();
 
     if (error) throw error;
-
-    // Actualizar el stock del producto si no hay un trigger en la DB
-    // En este proyecto asumimos que hay un trigger o que debemos hacerlo manualmente
-    // Vamos a intentar actualizarlo manualmente por seguridad si no estamos seguros del trigger
-    const { data: product } = await supabase
-      .from('products')
-      .select('stock')
-      .eq('id', movement.product_id)
-      .single();
-
-    if (product) {
-      let newStock = product.stock;
-      if (movement.type === 'in') newStock += movement.quantity;
-      else if (movement.type === 'out' || movement.type === 'waste') newStock -= movement.quantity;
-
-      await supabase
-        .from('products')
-        .update({ stock: newStock })
-        .eq('id', movement.product_id);
-    }
-
     return data;
   },
 
