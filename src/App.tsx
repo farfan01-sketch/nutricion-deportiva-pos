@@ -62,7 +62,7 @@ const App: React.FC = () => {
       case 'pos': return <POS user={user} />;
       case 'sales-history': return <SalesHistory user={user} />;
       case 'products': return <Products user={user} />;
-      case 'inventory': return <Inventory />;
+      case 'inventory': return <Inventory user={user} />;
       case 'customers': return <Customers />;
       case 'suppliers': return <Suppliers />;
       case 'layaways': return <Layaways user={user} />;
