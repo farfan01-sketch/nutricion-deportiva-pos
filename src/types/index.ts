@@ -251,3 +251,61 @@ export interface SaleProfit {
   status: string;
   profit: number;
 }
+
+export type PermissionModule = 'ventas' | 'clientes' | 'productos' | 'inventario' | 'sistema';
+
+export interface UserPermission {
+  id: string;
+  user_id: string;
+  module: PermissionModule;
+  permission: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const PERMISSIONS_BY_MODULE: Record<PermissionModule, { id: string; label: string }[]> = {
+  ventas: [
+    { id: 'usar_producto_comun', label: 'Usar Producto Común' },
+    { id: 'aplicar_mayoreo', label: 'Aplicar Mayoreo' },
+    { id: 'aplicar_descuento', label: 'Aplicar Descuento' },
+    { id: 'ver_historial_ventas', label: 'Ver Historial de Ventas' },
+    { id: 'registrar_entradas_efectivo', label: 'Registrar Entradas de Efectivo' },
+    { id: 'registrar_salidas_efectivo', label: 'Registrar Salidas de Efectivo' },
+    { id: 'cobrar_ticket', label: 'Cobrar Ticket' },
+    { id: 'cobrar_credito', label: 'Cobrar Crédito' },
+    { id: 'cancelar_ticket', label: 'Cancelar Ticket' },
+    { id: 'eliminar_articulos', label: 'Eliminar Artículos' },
+    { id: 'facturar', label: 'Facturar' },
+    { id: 'vender_pago_servicio', label: 'Vender Pago de Servicio' },
+    { id: 'vender_recargas', label: 'Vender Recargas' },
+    { id: 'usar_buscador_productos', label: 'Usar Buscador de Productos' },
+  ],
+  clientes: [
+    { id: 'crear_clientes', label: 'Crear Clientes' },
+    { id: 'asignar_cliente_venta', label: 'Asignar Cliente a Venta' },
+    { id: 'manejar_credito_cliente', label: 'Manejar Crédito de Cliente' },
+    { id: 'ver_abonos_clientes', label: 'Ver Abonos de Clientes' },
+  ],
+  productos: [
+    { id: 'crear_productos', label: 'Crear Productos' },
+    { id: 'modificar_productos', label: 'Modificar Productos' },
+    { id: 'eliminar_productos', label: 'Eliminar Productos' },
+    { id: 'ver_reportes_productos', label: 'Ver Reportes de Productos' },
+    { id: 'crear_promociones', label: 'Crear Promociones' },
+  ],
+  inventario: [
+    { id: 'agregar_mercancia', label: 'Agregar Mercancía' },
+    { id: 'ver_existencias', label: 'Ver Existencias' },
+    { id: 'ver_movimientos', label: 'Ver Movimientos' },
+    { id: 'ajustar_inventario', label: 'Ajustar Inventario' },
+  ],
+  sistema: [
+    { id: 'corte_turno_propio', label: 'Corte de Turno Propio' },
+    { id: 'corte_todos_turnos', label: 'Corte de Todos los Turnos' },
+    { id: 'ver_ganancia_dia', label: 'Ver Ganancia del Día' },
+    { id: 'configuracion_sistema', label: 'Configuración del Sistema' },
+    { id: 'ver_reportes', label: 'Ver Reportes' },
+    { id: 'ordenes_compra', label: 'Órdenes de Compra' },
+  ],
+};

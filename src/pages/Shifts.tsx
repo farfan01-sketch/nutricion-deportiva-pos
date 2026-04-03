@@ -143,23 +143,23 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
       // Fallback a los datos de auditoría si falla el cálculo detallado
       if (shift.status === 'closed' && shift.cash_sales !== undefined) {
         const totals = {
-          total_sales: shift.total_sales,
-          cash_sales: shift.cash_sales,
-          card_sales: shift.card_sales,
-          transfer_sales: shift.transfer_sales,
-          layaway_cash_payments: shift.layaway_cash || 0,
-          layaway_card_payments: shift.layaway_card || 0,
-          layaway_transfer_payments: shift.layaway_transfer || 0,
-          total_expenses: shift.total_expenses,
-          cash_expenses: shift.cash_expenses || 0,
-          total_returns: (shift.cash_returns || 0) + (shift.card_returns || 0) + (shift.transfer_returns || 0),
-          cash_returns: shift.cash_returns || 0,
-          card_returns: shift.card_returns || 0,
-          transfer_returns: shift.transfer_returns || 0,
-          expected_cash: shift.expected_cash || 0,
-          real_profit: shift.real_profit || 0
+          total_sales: Number(shift.total_sales) || 0,
+          cash_sales: Number(shift.cash_sales) || 0,
+          card_sales: Number(shift.card_sales) || 0,
+          transfer_sales: Number(shift.transfer_sales) || 0,
+          layaway_cash_payments: Number(shift.layaway_cash) || 0,
+          layaway_card_payments: Number(shift.layaway_card) || 0,
+          layaway_transfer_payments: Number(shift.layaway_transfer) || 0,
+          total_expenses: Number(shift.total_expenses) || 0,
+          cash_expenses: Number(shift.cash_expenses) || 0,
+          total_returns: (Number(shift.cash_returns) || 0) + (Number(shift.card_returns) || 0) + (Number(shift.transfer_returns) || 0),
+          cash_returns: Number(shift.cash_returns) || 0,
+          card_returns: Number(shift.card_returns) || 0,
+          transfer_returns: Number(shift.transfer_returns) || 0,
+          expected_cash: Number(shift.expected_cash) || 0,
+          real_profit: Number(shift.real_profit) || 0
         };
-        setShiftTotals(totals);
+        setShiftTotals(totals as any);
       }
     } finally {
       setLoading(false);

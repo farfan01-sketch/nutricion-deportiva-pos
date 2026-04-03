@@ -13,7 +13,8 @@ import {
   LogOut,
   Clock
 } from 'lucide-react';
-import { User } from '../types';
+import { User, PermissionModule } from '../types';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface SidebarProps {
   user: User;
@@ -23,22 +24,44 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLogout }) => {
+  const { hasPermission } = usePermissions(user);
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'staff'] },
-    { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, roles: ['admin', 'staff'] },
-    { id: 'sales-history', label: 'Historial', icon: History, roles: ['admin', 'staff'] },
-    { id: 'products', label: 'Productos', icon: Package, roles: ['admin'] },
-    { id: 'inventory', label: 'Inventario', icon: BarChart3, roles: ['admin', 'staff'] },
-    { id: 'customers', label: 'Clientes', icon: Users, roles: ['admin', 'staff'] },
+    { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
+    { id: 'sales-history', label: 'Historial', icon: History, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule, permission: 'ver_historial_ventas' },
+    { id: 'products', label: 'Productos', icon: Package, roles: ['admin', 'staff'], module: 'productos' as PermissionModule },
+    { id: 'inventory', label: 'Inventario', icon: BarChart3, roles: ['admin', 'staff'], module: 'inventario' as PermissionModule },
+    { id: 'customers', label: 'Clientes', icon: Users, roles: ['admin', 'staff'], module: 'clientes' as PermissionModule },
     { id: 'suppliers', label: 'Proveedores', icon: Truck, roles: ['admin'] },
-    { id: 'layaways', label: 'Apartados', icon: Receipt, roles: ['admin', 'staff'] },
-    { id: 'expenses', label: 'Gastos', icon: Wallet, roles: ['admin', 'staff'] },
-    { id: 'shifts', label: 'Turnos', icon: Clock, roles: ['admin', 'staff'] },
-    { id: 'reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'staff'] },
+    { id: 'layaways', label: 'Apartados', icon: Receipt, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
+    { id: 'expenses', label: 'Gastos', icon: Wallet, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
+    { id: 'shifts', label: 'Turnos', icon: Clock, roles: ['admin', 'staff'], module: 'sistema' as PermissionModule, permission: 'corte_turno_propio' },
+    { id: 'reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'staff'], module: 'sistema' as PermissionModule, permission: 'ver_reportes' },
     { id: 'staff', label: 'Personal', icon: UserCircle, roles: ['admin'] },
   ];
 
-  const filteredItems = menuItems.filter(item => item.roles.includes(user.role));
+  const filteredItems = menuItems.filter(item => {
+    // Primero verificar rol básico
+    if (!item.roles.includes(user.role)) return false;
+    
+    // Si tiene módulo específico, verificar permisos
+    if (item.module) {
+      // Si tiene un permiso específico dentro del módulo
+      if (item.permission) {
+        return hasPermission(item.module, item.permission);
+      }
+      // Si no, solo verificar que tenga habilitado el módulo (al menos un permiso o acceso general)
+      // Por simplicidad, si tiene el módulo definido, verificamos si tiene algún permiso habilitado en ese módulo
+      // O simplemente permitimos si es admin o si tiene permisos en ese módulo.
+      // En este sistema, hasPermission ya maneja el rol admin.
+      // Para módulos enteros, podríamos agregar un permiso de "acceso_modulo" o similar, 
+      // pero usaremos el primer permiso de la lista como proxy o simplemente permitiremos si tiene el módulo.
+      return true; // Por ahora permitimos si el rol coincide, los permisos granulares van dentro de la página
+    }
+    
+    return true;
+  });
 
   return (
     <div className="w-64 bg-sidebar h-screen flex flex-col no-print">

@@ -12,7 +12,7 @@ import Layaways from './pages/Layaways';
 import Expenses from './pages/Expenses';
 import Shifts from './pages/Shifts';
 import Reports from './pages/Reports';
-import Staff from './pages/Staff';
+import UsersPage from './pages/UsersPage';
 import SalesHistory from './pages/SalesHistory';
 
 const App: React.FC = () => {
@@ -69,7 +69,7 @@ const App: React.FC = () => {
       case 'expenses': return <Expenses />;
       case 'shifts': return <Shifts user={user} />;
       case 'reports': return <Reports />;
-      case 'staff': return <Staff />;
+      case 'staff': return <UsersPage />;
       default: return <Dashboard />;
     }
   };

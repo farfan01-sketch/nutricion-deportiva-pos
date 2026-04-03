@@ -64,7 +64,7 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Ventas Totales</p>
-              <p className="text-sm font-black text-slate-900">{formatCurrency(totals.total_sales)}</p>
+              <p className="text-sm font-black text-slate-900">{formatCurrency(totals.total_sales || 0)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Utilidad Real</p>
-              <p className="text-sm font-black text-emerald-600">{formatCurrency(totals.real_profit)}</p>
+              <p className="text-sm font-black text-emerald-600">{formatCurrency(totals.real_profit || 0)}</p>
             </div>
           </div>
         </div>
@@ -134,17 +134,17 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
           </div>
           <div className="flex justify-between text-sm text-amber-600 font-bold pt-2 border-t border-slate-200/50">
             <span>Devoluciones Totales</span>
-            <span>- {formatCurrency(totals.total_returns)}</span>
+            <span>- {formatCurrency(totals.total_returns || 0)}</span>
           </div>
           {totals.cash_returns > 0 && (
             <div className="flex justify-between text-[10px] text-amber-500 pl-4">
               <span>Efectivo</span>
-              <span>- {formatCurrency(totals.cash_returns)}</span>
+              <span>- {formatCurrency(totals.cash_returns || 0)}</span>
             </div>
           )}
           <div className="pt-3 border-t border-slate-200 flex justify-between text-base">
             <span className="font-bold text-slate-900">Total Ingresos Turno</span>
-            <span className="font-black text-primary-600">{formatCurrency(totals.total_sales - totals.total_returns)}</span>
+            <span className="font-black text-primary-600">{formatCurrency((totals.total_sales || 0) - (totals.total_returns || 0))}</span>
           </div>
         </div>
       </div>
@@ -158,7 +158,7 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
           </h3>
           <div className="bg-rose-50 rounded-2xl p-6">
             <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">Total Gastos</p>
-            <p className="text-xl font-black text-rose-600">{formatCurrency(totals.total_expenses)}</p>
+            <p className="text-xl font-black text-rose-600">{formatCurrency(totals.total_expenses || 0)}</p>
           </div>
         </div>
         <div className="space-y-4">
@@ -168,7 +168,7 @@ const ShiftReport = forwardRef<HTMLDivElement, ShiftReportProps>(({ shift, total
           </h3>
           <div className="bg-emerald-50 rounded-2xl p-6">
             <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Efectivo Esperado</p>
-            <p className="text-xl font-black text-emerald-600">{formatCurrency(totals.expected_cash)}</p>
+            <p className="text-xl font-black text-emerald-600">{formatCurrency(totals.expected_cash || 0)}</p>
           </div>
         </div>
       </div>

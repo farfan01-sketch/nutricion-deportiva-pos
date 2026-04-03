@@ -19,12 +19,14 @@ import { Product, Customer, Shift, User } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 import Ticket from '../components/Ticket';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface POSProps {
   user: User;
 }
 
 const POS: React.FC<POSProps> = ({ user }) => {
+  const { hasPermission } = usePermissions(user);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
@@ -180,10 +182,11 @@ const POS: React.FC<POSProps> = ({ user }) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
-              placeholder="Buscar por nombre o código..."
+              placeholder={hasPermission('ventas', 'usar_buscador_productos') ? "Buscar por nombre o código..." : "Buscador deshabilitado"}
+              disabled={!hasPermission('ventas', 'usar_buscador_productos')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -251,12 +254,14 @@ const POS: React.FC<POSProps> = ({ user }) => {
                 >
                   <Plus size={16} />
                 </button>
-                <button 
-                  onClick={() => removeFromCart(item.product_id)}
-                  className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors ml-2"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {hasPermission('ventas', 'eliminar_articulos') && (
+                  <button 
+                    onClick={() => removeFromCart(item.product_id)}
+                    className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors ml-2"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -315,8 +320,9 @@ const POS: React.FC<POSProps> = ({ user }) => {
               <input 
                 type="number"
                 value={discount}
+                disabled={!hasPermission('ventas', 'aplicar_descuento')}
                 onChange={(e) => setDiscount(Number(e.target.value))}
-                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-sm outline-none"
+                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-sm outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -350,7 +356,7 @@ const POS: React.FC<POSProps> = ({ user }) => {
 
           <button
             onClick={handleProcessSale}
-            disabled={loading || cart.length === 0}
+            disabled={loading || cart.length === 0 || !hasPermission('ventas', 'cobrar_ticket')}
             className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
@@ -358,7 +364,7 @@ const POS: React.FC<POSProps> = ({ user }) => {
             ) : (
               <>
                 <CreditCard size={20} />
-                Procesar {saleType === 'sale' ? 'Venta' : 'Apartado'}
+                {!hasPermission('ventas', 'cobrar_ticket') ? 'Sin Permiso para Cobrar' : `Procesar ${saleType === 'sale' ? 'Venta' : 'Apartado'}`}
               </>
             )}
           </button>
