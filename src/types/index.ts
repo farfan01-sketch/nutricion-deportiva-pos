@@ -123,12 +123,16 @@ export interface InventoryMovement {
   reason: string;
   user_id: string;
   reference_type?: string;
+  stock_before?: number;
+  stock_after?: number;
   created_at: string;
   // Joins
   products?: {
     name: string;
     code: string;
     brand: string;
+    cost: number;
+    stock_min: number;
   };
 }
 
