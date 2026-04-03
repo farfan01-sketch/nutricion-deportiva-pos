@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Check, X, AlertCircle } from 'lucide-react';
-import { User, PermissionModule, PERMISSIONS_BY_MODULE, UserPermission } from '../../types';
+import { Shield, Check, AlertCircle } from 'lucide-react';
+import { User, PermissionModule, PERMISSIONS_BY_MODULE } from '../../types';
 import { permissionsService } from '../../services/permissions';
 import { cn } from '../../lib/utils';
 
