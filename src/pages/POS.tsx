@@ -93,35 +93,6 @@ const POS: React.FC<POSProps> = ({ user }) => {
     loadInitialData();
   }, [loadInitialData]);
 
-  // Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        if (cart.length > 0 && hasPermission('ventas', 'cobrar_ticket')) handleProcessSale();
-      }
-      if (e.key === 'F3') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-      if (e.key === 'F4') {
-        e.preventDefault();
-        if (hasPermission('ventas', 'usar_producto_comun')) setShowCommonProductModal(true);
-      }
-      if (e.key === 'F6') {
-        e.preventDefault();
-        setShowPriceChecker(true);
-      }
-      if (e.key === 'F9') {
-        e.preventDefault();
-        if (lastSaleData) handlePrint();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, hasPermission, lastSaleData, handlePrint, handleProcessSale]);
-
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
     p.code.toLowerCase().includes(search.toLowerCase()) ||
@@ -280,6 +251,35 @@ const POS: React.FC<POSProps> = ({ user }) => {
       setLoading(false);
     }
   }, [openShift, cart, saleType, selectedCustomer, deposit, total, discount, paymentMethod, subtotal, user.id, loadInitialData]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (cart.length > 0 && hasPermission('ventas', 'cobrar_ticket')) handleProcessSale();
+      }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'F4') {
+        e.preventDefault();
+        if (hasPermission('ventas', 'usar_producto_comun')) setShowCommonProductModal(true);
+      }
+      if (e.key === 'F6') {
+        e.preventDefault();
+        setShowPriceChecker(true);
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (lastSaleData) handlePrint();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, hasPermission, lastSaleData, handlePrint, handleProcessSale]);
 
   if (!openShift) {
     return (
