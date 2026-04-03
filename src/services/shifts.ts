@@ -52,7 +52,9 @@ export const shiftService = {
         cash_expenses: totals.cash_expenses,
         cash_returns: totals.cash_returns,
         card_returns: totals.card_returns,
-        transfer_returns: totals.transfer_returns
+        transfer_returns: totals.transfer_returns,
+        real_profit: totals.real_profit,
+        total_cogs: totals.total_cogs
       })
       .eq('id', id)
       .select()

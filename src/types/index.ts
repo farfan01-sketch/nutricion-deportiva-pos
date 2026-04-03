@@ -108,6 +108,8 @@ export interface Shift {
   cash_returns?: number;
   card_returns?: number;
   transfer_returns?: number;
+  real_profit?: number;
+  total_cogs?: number;
 
   // Joins
   user?: { name: string };

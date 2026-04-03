@@ -124,30 +124,45 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     setModalType('view');
     setIsModalOpen(true);
     
-    // Si el turno está cerrado y tiene columnas de auditoría, las usamos directamente
-    if (shift.status === 'closed' && shift.cash_sales !== undefined) {
-      const totals = {
-        total_sales: shift.total_sales,
-        cash_sales: shift.cash_sales,
-        card_sales: shift.card_sales,
-        transfer_sales: shift.transfer_sales,
-        layaway_cash_payments: shift.layaway_cash || 0,
-        layaway_card_payments: shift.layaway_card || 0,
-        layaway_transfer_payments: shift.layaway_transfer || 0,
-        total_expenses: shift.total_expenses,
-        cash_expenses: shift.cash_expenses || 0,
-        total_returns: (shift.cash_returns || 0) + (shift.card_returns || 0) + (shift.transfer_returns || 0),
-        cash_returns: shift.cash_returns || 0,
-        card_returns: shift.card_returns || 0,
-        transfer_returns: shift.transfer_returns || 0,
-        expected_cash: shift.expected_cash
-      };
-      setShiftTotals(totals);
-    } else {
-      // Si no tiene auditoría (turnos viejos), calculamos sobre la marcha
+    setLoading(true);
+    try {
+      // Siempre calculamos los totales para asegurar que tenemos la utilidad real y el COGS
       const totals = await shiftService.getShiftTotals(shift.id, shift.opened_at, shift.closed_at || undefined);
-      totals.expected_cash = shift.expected_cash || (shift.opening_cash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0));
+      
+      // Si el turno está cerrado, usamos el efectivo esperado guardado si existe
+      if (shift.status === 'closed' && shift.expected_cash !== null) {
+        totals.expected_cash = shift.expected_cash;
+      } else {
+        const initialCash = shift.opening_cash || 0;
+        totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0);
+      }
+      
       setShiftTotals(totals);
+    } catch (err) {
+      console.error('Error loading shift totals:', err);
+      // Fallback a los datos de auditoría si falla el cálculo detallado
+      if (shift.status === 'closed' && shift.cash_sales !== undefined) {
+        const totals = {
+          total_sales: shift.total_sales,
+          cash_sales: shift.cash_sales,
+          card_sales: shift.card_sales,
+          transfer_sales: shift.transfer_sales,
+          layaway_cash_payments: shift.layaway_cash || 0,
+          layaway_card_payments: shift.layaway_card || 0,
+          layaway_transfer_payments: shift.layaway_transfer || 0,
+          total_expenses: shift.total_expenses,
+          cash_expenses: shift.cash_expenses || 0,
+          total_returns: (shift.cash_returns || 0) + (shift.card_returns || 0) + (shift.transfer_returns || 0),
+          cash_returns: shift.cash_returns || 0,
+          card_returns: shift.card_returns || 0,
+          transfer_returns: shift.transfer_returns || 0,
+          expected_cash: shift.expected_cash || 0,
+          real_profit: shift.real_profit || 0
+        };
+        setShiftTotals(totals);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
