@@ -23,6 +23,17 @@ export const productService = {
     return data || [];
   },
 
+  async getByCode(code: string): Promise<Product | null> {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('code', code)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
   async create(product: Partial<Product>): Promise<Product> {
     const { data, error } = await supabase
       .from('products')
