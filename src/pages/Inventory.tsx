@@ -175,6 +175,7 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!product) return;
     const cleanQuantity = parseInputNumber(quantity);
     if (cleanQuantity <= 0) {
       alert('La cantidad debe ser un número válido mayor a cero.');
