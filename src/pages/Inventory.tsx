@@ -18,6 +18,14 @@ interface InventoryProps {
   user: User | null;
 }
 
+const parseInputNumber = (val: any): number => {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  const normalized = String(val).replace(',', '.');
+  const parsed = parseFloat(normalized);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 const Inventory: React.FC<InventoryProps> = ({ user }) => {
   const [currentView, setCurrentView] = useState<InventoryView>('ADD');
   const { hasPermission } = usePermissions(user);
@@ -167,23 +175,33 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!product || quantity <= 0) return;
+    const cleanQuantity = parseInputNumber(quantity);
+    if (cleanQuantity <= 0) {
+      alert('La cantidad debe ser un número válido mayor a cero.');
+      return;
+    }
 
     setLoading(true);
     try {
+      const movementData: any = {
+        product_id: product.id,
+        type: 'in',
+        quantity: cleanQuantity,
+        reason: 'Entrada de mercancía / Compra',
+        reference_type: 'purchase',
+      };
+
+      // Solo agregar user_id si existe y no es cadena vacía
+      if (user?.id) {
+        movementData.user_id = user.id;
+      }
+
       await inventoryService.addStockWithPriceUpdate(
+        movementData,
         {
-          product_id: product.id,
-          type: 'in',
-          quantity,
-          reason: 'Entrada de mercancía / Compra',
-          reference_type: 'purchase',
-          user_id: user?.id || ''
-        },
-        {
-          cost,
-          price_retail: priceRetail,
-          price_wholesale: priceWholesale
+          cost: parseInputNumber(cost),
+          price_retail: parseInputNumber(priceRetail),
+          price_wholesale: parseInputNumber(priceWholesale)
         }
       );
 
@@ -191,8 +209,10 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
       setProduct(null);
       setBarcode('');
       barcodeRef.current?.focus();
-    } catch (err) {
-      alert('Error al procesar la entrada.');
+    } catch (err: any) {
+      console.error('Error al procesar inventario:', err);
+      const msg = err.message || err.details || 'Error al procesar la entrada.';
+      alert(`Error: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -364,26 +384,43 @@ const AdjustInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
     e.preventDefault();
     if (!product || !reason.trim()) return;
 
-    const diff = newStock - product.stock;
-    if (diff === 0) return;
+    const cleanNewStock = parseInputNumber(newStock);
+    const diff = cleanNewStock - product.stock;
+    if (diff === 0) {
+      alert('La nueva cantidad es igual a la actual. No se requiere ajuste.');
+      return;
+    }
+
+    if (!reason.trim()) {
+      alert('Debe ingresar un motivo para el ajuste.');
+      return;
+    }
 
     setLoading(true);
     try {
-      await inventoryService.createMovement({
+      const movementData: any = {
         product_id: product.id,
         type: diff > 0 ? 'in' : 'out',
         quantity: Math.abs(diff),
         reason: `Ajuste manual: ${reason}`,
         reference_type: 'adjustment',
-        user_id: user?.id || ''
-      });
+      };
+
+      // Solo agregar user_id si existe
+      if (user?.id) {
+        movementData.user_id = user.id;
+      }
+
+      await inventoryService.createMovement(movementData);
 
       alert('Ajuste realizado correctamente.');
       setProduct(null);
       setBarcode('');
       barcodeRef.current?.focus();
-    } catch (err) {
-      alert('Error al procesar el ajuste.');
+    } catch (err: any) {
+      console.error('Error al procesar el ajuste:', err);
+      const msg = err.message || err.details || 'Error al procesar el ajuste.';
+      alert(`Error: ${msg}`);
     } finally {
       setLoading(false);
     }
