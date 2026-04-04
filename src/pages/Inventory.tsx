@@ -189,7 +189,6 @@ const AddInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
         type: 'in',
         quantity: cleanQuantity,
         reason: 'Entrada de mercancía / Compra',
-        reference_type: 'purchase',
       };
 
       // Solo agregar user_id si existe y no es cadena vacía
@@ -404,7 +403,6 @@ const AdjustInventoryView: React.FC<{ user: User | null }> = ({ user }) => {
         type: diff > 0 ? 'in' : 'out',
         quantity: Math.abs(diff),
         reason: `Ajuste manual: ${reason}`,
-        reference_type: 'adjustment',
       };
 
       // Solo agregar user_id si existe
