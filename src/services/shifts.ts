@@ -2,12 +2,17 @@ import { supabase } from '../lib/supabase';
 import { Shift } from '../types';
 
 export const shiftService = {
-  async getOpenShift(): Promise<Shift | null> {
-    const { data, error } = await supabase
+  async getOpenShift(userId?: string): Promise<Shift | null> {
+    let query = supabase
       .from('shifts')
       .select('*')
-      .eq('status', 'open')
-      .maybeSingle();
+      .eq('status', 'open');
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) return null;
     return data;
