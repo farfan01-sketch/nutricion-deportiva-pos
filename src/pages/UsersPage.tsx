@@ -60,7 +60,7 @@ const UsersPage: React.FC = () => {
           await authService.updatePassword(editingUser.id, formData.password);
           alert('Usuario y contraseña actualizados correctamente');
         } else {
-          alert('Perfil actualizado correctamente');
+          alert('Perfil de usuario actualizado correctamente');
         }
       } else {
         // Crear nuevo usuario
@@ -73,8 +73,13 @@ const UsersPage: React.FC = () => {
       setFormData({ username: '', password: '', role: 'staff', name: '' });
       loadUsers();
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'Error al guardar usuario');
+      console.error('Error detallado al guardar:', err);
+      // Manejo de errores específicos para mejorar la UX
+      if (err.message?.includes('JSON object') || err.message?.includes('0 rows')) {
+        alert('Error técnico: No se pudo encontrar el registro del usuario en la base de datos pública. Es posible que el ID sea incorrecto o el registro haya sido eliminado.');
+      } else {
+        alert(err.message || 'Error al guardar usuario');
+      }
     }
   };
 
@@ -84,7 +89,7 @@ const UsersPage: React.FC = () => {
       username: user.username,
       role: user.role,
       name: user.name,
-      password: '' // Siempre inicializar como string vacío
+      password: '' // Siempre inicializar como string vacío para evitar cambios accidentales
     });
     setIsModalOpen(true);
   };
@@ -269,7 +274,7 @@ const UsersPage: React.FC = () => {
 
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700">
-              {editingUser ? 'Nueva Contraseña (opcional)' : 'Contraseña'}
+              {editingUser ? 'Nueva Contraseña (dejar vacío para no cambiar)' : 'Contraseña'}
             </label>
             <div className="relative">
               <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -282,6 +287,11 @@ const UsersPage: React.FC = () => {
                 placeholder="••••••••"
               />
             </div>
+            {editingUser && (
+              <p className="text-[10px] text-slate-400 italic">
+                Solo complete este campo si desea cambiar la contraseña del usuario.
+              </p>
+            )}
           </div>
 
           <div className="pt-4 flex gap-4">

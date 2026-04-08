@@ -8,9 +8,10 @@ export const authService = {
       .select('*')
       .eq('username', username)
       .eq('password', password)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    if (error) throw error;
+    if (!data) {
       throw new Error('Credenciales inválidas');
     }
 
@@ -32,9 +33,12 @@ export const authService = {
       .from('users')
       .insert([user])
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se pudo crear el registro del usuario en la tabla pública.');
+    }
     return data;
   },
 
@@ -47,9 +51,19 @@ export const authService = {
       .update(profileData)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42501') {
+        throw new Error('No tienes permisos para actualizar este usuario (Error de RLS).');
+      }
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error(`No se encontró el registro del usuario en la tabla pública (ID: ${id}). Es posible que el registro no exista o no tengas permisos para modificarlo.`);
+    }
+
     return data;
   },
 
@@ -62,19 +76,28 @@ export const authService = {
       if (error) throw error;
       
       // También actualizamos en la tabla pública si se usa para login manual
-      await supabase.from('users').update({ password: newPassword }).eq('id', id);
-    } else {
-      // Si un admin cambia la contraseña de otro
-      // Aquí lo ideal es una Edge Function. Por ahora intentamos actualizar la tabla pública
-      // pero capturamos el error si falla por RLS.
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('users')
         .update({ password: newPassword })
         .eq('id', id);
         
+      if (dbError) console.error('Error sincronizando password en tabla pública:', dbError);
+    } else {
+      // Si un admin cambia la contraseña de otro
+      // Intentamos actualizar la tabla pública (requiere que el admin tenga permisos de escritura)
+      const { data, error } = await supabase
+        .from('users')
+        .update({ password: newPassword })
+        .eq('id', id)
+        .select();
+        
       if (error) {
         console.error('Error updating password in public table:', error);
-        throw new Error('No se pudo actualizar la contraseña. Si el problema persiste, contacte a soporte para configurar la Edge Function de administración.');
+        throw new Error('Error de base de datos al actualizar la contraseña. Verifique los permisos de administrador.');
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo actualizar la contraseña: El usuario no existe en la tabla pública.');
       }
     }
   },
