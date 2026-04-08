@@ -47,6 +47,7 @@ export interface Sale {
   id: string;
   user_id: string;
   customer_id: string | null;
+  register_id?: string;
   subtotal: number;
   total: number;
   payment_method: 'cash' | 'transfer' | 'card' | 'mixed';
@@ -78,6 +79,7 @@ export interface Expense {
   amount: number;
   method: string;
   shift_id?: string;
+  register_id?: string;
   note: string;
   created_at: string;
 }
@@ -85,6 +87,7 @@ export interface Expense {
 export interface Shift {
   id: string;
   user_id: string;
+  register_id?: string;
   opened_at: string;
   closed_at: string | null;
   opening_cash: number;
@@ -152,6 +155,7 @@ export interface LayawayPayment {
   payment_method: 'cash' | 'card' | 'transfer';
   user_id: string;
   shift_id?: string;
+  register_id?: string;
   notes?: string;
   receipt_number?: number;
   created_at: string;
@@ -162,6 +166,7 @@ export interface SaleReturn {
   sale_id: string;
   user_id: string;
   shift_id?: string;
+  register_id?: string;
   reason: string;
   return_method: 'cash' | 'card' | 'transfer';
   total_returned: number;
@@ -285,6 +290,15 @@ export interface CatalogOrderItem {
   created_at: string;
   // Join
   product?: Product;
+}
+
+export interface CashRegister {
+  id: string;
+  name: string;
+  code: string;
+  location?: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 export type PermissionModule = 'ventas' | 'clientes' | 'productos' | 'inventario' | 'sistema';

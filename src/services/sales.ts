@@ -13,6 +13,7 @@ export const saleService = {
     p_type: 'sale' | 'layaway';
     p_user_id: string;
     p_shift_id: string | null;
+    p_register_id: string;
   }): Promise<string> {
     const { data, error } = await supabase.rpc('process_sale', params);
 
@@ -20,12 +21,18 @@ export const saleService = {
     return data;
   },
 
-  async getRecentSales(limit = 10): Promise<Sale[]> {
-    const { data, error } = await supabase
+  async getRecentSales(limit = 10, registerId?: string): Promise<Sale[]> {
+    let query = supabase
       .from('sales')
       .select('*, customer:customers(name), user:users(name)')
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    if (registerId) {
+      query = query.eq('register_id', registerId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data || [];
@@ -46,8 +53,8 @@ export const saleService = {
     return (data as any) || [];
   },
 
-  async getPendingLayaways(): Promise<Layaway[]> {
-    const { data, error } = await supabase
+  async getPendingLayaways(registerId?: string): Promise<Layaway[]> {
+    let query = supabase
       .from('layaways')
       .select(`
         *,
@@ -61,6 +68,12 @@ export const saleService = {
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
+    if (registerId) {
+      query = query.eq('sales.register_id', registerId);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
       console.error('Error fetching pending layaways:', error);
       return [];
@@ -73,6 +86,7 @@ export const saleService = {
     endDate?: string;
     ticketNumber?: string;
     customerId?: string;
+    registerId?: string;
   }): Promise<Sale[]> {
     let query = supabase
       .from('sales')
@@ -94,6 +108,9 @@ export const saleService = {
     }
     if (filters?.customerId) {
       query = query.eq('customer_id', filters.customerId);
+    }
+    if (filters?.registerId) {
+      query = query.eq('register_id', filters.registerId);
     }
 
     const { data, error } = await query;
@@ -126,6 +143,7 @@ export const saleService = {
     p_sale_id: string;
     p_user_id: string;
     p_shift_id: string | null;
+    p_register_id: string;
     p_reason: string;
     p_return_method: 'cash' | 'card' | 'transfer';
     p_items: { product_id: string; quantity: number; price: number }[];
@@ -142,6 +160,7 @@ export const saleService = {
     p_payment_method: string;
     p_user_id: string;
     p_shift_id: string | null;
+    p_register_id: string;
     p_notes: string;
   }): Promise<any> {
     const { data, error } = await supabase.rpc('register_layaway_payment', params);

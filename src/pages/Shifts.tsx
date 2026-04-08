@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Clock, 
   Unlock, 
@@ -12,16 +12,17 @@ import {
 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { shiftService } from '../services/shifts';
-import { Shift, User } from '../types';
+import { Shift, User, CashRegister } from '../types';
 import { formatCurrency, formatDate } from '../utils/format';
 import Modal from '../components/Modal';
 import ShiftReport from '../components/ShiftReport';
 
 interface ShiftsProps {
   user: User;
+  register: CashRegister;
 }
 
-const Shifts: React.FC<ShiftsProps> = ({ user }) => {
+const Shifts: React.FC<ShiftsProps> = ({ user, register }) => {
   const [openShift, setOpenShift] = useState<Shift | null>(null);
   const [history, setHistory] = useState<Shift[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,22 +43,22 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     suppressErrors: true,
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [current, past] = await Promise.all([
-        shiftService.getOpenShift(),
-        shiftService.getHistory()
+        shiftService.getOpenShift(user.id, register.id),
+        shiftService.getHistory(register.id)
       ]);
       setOpenShift(current);
       setHistory(past);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [user.id, register.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const loadShiftTotals = React.useCallback(async (shiftId: string, openedAt: string, closedAt?: string) => {
     try {
@@ -86,7 +87,7 @@ const Shifts: React.FC<ShiftsProps> = ({ user }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await shiftService.openShift(user.id, cashAmount, notes);
+      await shiftService.openShift(user.id, register.id, cashAmount, notes);
       setIsModalOpen(false);
       resetForm();
       loadData();

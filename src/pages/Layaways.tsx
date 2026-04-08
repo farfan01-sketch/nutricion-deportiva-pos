@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Receipt, Search, Filter, Calendar, User as UserIcon, Clock, XCircle, AlertCircle, DollarSign, CreditCard, Send, CheckCircle2, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { saleService } from '../services/sales';
 import { shiftService } from '../services/shifts';
 import { formatCurrency, formatDate } from '../utils/format';
-import { User } from '../types';
+import { User, CashRegister } from '../types';
 import Modal from '../components/Modal';
 import LayawayPaymentTicket from '../components/LayawayPaymentTicket';
 
 interface LayawaysProps {
   user: User;
+  register: CashRegister;
 }
 
-const Layaways: React.FC<LayawaysProps> = ({ user }) => {
+const Layaways: React.FC<LayawaysProps> = ({ user, register }) => {
   const [layaways, setLayaways] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -43,16 +44,12 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
     suppressErrors: true,
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [layawaysData, shiftData] = await Promise.all([
-        saleService.getPendingLayaways(),
-        shiftService.getOpenShift()
+        saleService.getPendingLayaways(register.id),
+        shiftService.getOpenShift(user.id, register.id)
       ]);
       setLayaways(layawaysData);
       setOpenShift(shiftData);
@@ -61,7 +58,11 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id, register.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleOpenPaymentModal = (layaway: any) => {
     setSelectedLayaway(layaway);
@@ -94,6 +95,7 @@ const Layaways: React.FC<LayawaysProps> = ({ user }) => {
         p_payment_method: paymentMethod,
         p_user_id: user.id,
         p_shift_id: openShift.id,
+        p_register_id: register.id,
         p_notes: paymentNotes
       });
       

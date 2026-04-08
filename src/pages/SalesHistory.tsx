@@ -18,16 +18,17 @@ import { supabase } from '../lib/supabase';
 import { saleService } from '../services/sales';
 import { shiftService } from '../services/shifts';
 import { customerService } from '../services/customers';
-import { Customer, Sale, SaleItem, User } from '../types';
+import { Customer, Sale, SaleItem, User, CashRegister } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 import Ticket from '../components/Ticket';
 
 interface SalesHistoryProps {
   user: User;
+  register: CashRegister;
 }
 
-const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
+const SalesHistory: React.FC<SalesHistoryProps> = ({ user, register }) => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,20 +68,23 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
   const loadSales = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await saleService.getHistory(filters);
+      const data = await saleService.getHistory({
+        ...filters,
+        registerId: register.id
+      });
       setSales(data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, register.id]);
 
   const loadInitialData = React.useCallback(async () => {
     try {
       const [c, s] = await Promise.all([
         customerService.getAll(),
-        shiftService.getOpenShift()
+        shiftService.getOpenShift(user.id, register.id)
       ]);
       setCustomers(c);
       setOpenShift(s);
@@ -88,7 +92,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
     } catch (err) {
       console.error(err);
     }
-  }, [loadSales]);
+  }, [loadSales, user.id, register.id]);
 
   useEffect(() => {
     loadInitialData();
@@ -196,6 +200,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ user }) => {
         p_sale_id: saleToReturn.id,
         p_user_id: user.id,
         p_shift_id: openShift?.id || null,
+        p_register_id: register.id,
         p_reason: returnReason,
         p_return_method: returnMethod,
         p_items: itemsToReturn.map(i => ({

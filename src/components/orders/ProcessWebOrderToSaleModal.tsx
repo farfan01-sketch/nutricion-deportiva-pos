@@ -10,7 +10,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
-import { CatalogOrder, User, Shift } from '../../types';
+import { CatalogOrder, User, Shift, CashRegister } from '../../types';
 import { saleService } from '../../services/sales';
 import { catalogService } from '../../services/catalog';
 import { shiftService } from '../../services/shifts';
@@ -21,6 +21,7 @@ import Ticket from '../Ticket';
 interface ProcessWebOrderToSaleModalProps {
   order: CatalogOrder;
   user: User;
+  register: CashRegister;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -29,6 +30,7 @@ interface ProcessWebOrderToSaleModalProps {
 const ProcessWebOrderToSaleModal: React.FC<ProcessWebOrderToSaleModalProps> = ({ 
   order, 
   user, 
+  register,
   isOpen, 
   onClose, 
   onSuccess 
@@ -49,9 +51,9 @@ const ProcessWebOrderToSaleModal: React.FC<ProcessWebOrderToSaleModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      shiftService.getOpenShift().then(setOpenShift);
+      shiftService.getOpenShift(user.id, register.id).then(setOpenShift);
     }
-  }, [isOpen]);
+  }, [isOpen, user.id, register.id]);
 
   const handleProcess = async () => {
     if (!openShift) {
@@ -77,7 +79,8 @@ const ProcessWebOrderToSaleModal: React.FC<ProcessWebOrderToSaleModalProps> = ({
         p_total: order.total,
         p_type: 'sale',
         p_user_id: user.id,
-        p_shift_id: openShift.id
+        p_shift_id: openShift.id,
+        p_register_id: register.id
       });
 
       // 2. Actualizar el pedido web

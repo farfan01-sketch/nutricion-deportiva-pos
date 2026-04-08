@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Unlock, DollarSign, AlertCircle, LogOut } from 'lucide-react';
 import { shiftService } from '../services/shifts';
-import { User } from '../types';
+import { User, CashRegister } from '../types';
 
 interface ShiftOpeningProps {
   user: User;
+  register: CashRegister;
   onOpen: () => void;
   onLogout: () => void;
 }
 
-const ShiftOpening: React.FC<ShiftOpeningProps> = ({ user, onOpen, onLogout }) => {
+const ShiftOpening: React.FC<ShiftOpeningProps> = ({ user, register, onOpen, onLogout }) => {
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ const ShiftOpening: React.FC<ShiftOpeningProps> = ({ user, onOpen, onLogout }) =
     setLoading(true);
     setError('');
     try {
-      await shiftService.openShift(user.id, cashAmount, notes);
+      await shiftService.openShift(user.id, register.id, cashAmount, notes);
       onOpen();
     } catch (err: any) {
       setError(err.message || 'Error al abrir turno');
@@ -43,7 +44,7 @@ const ShiftOpening: React.FC<ShiftOpeningProps> = ({ user, onOpen, onLogout }) =
               <Unlock size={32} />
             </div>
             <h1 className="text-2xl font-bold">Apertura de Turno</h1>
-            <p className="text-emerald-100 mt-1">Hola, {user.name}. Por favor abre tu turno para comenzar.</p>
+            <p className="text-emerald-100 mt-1">Hola, {user.name}. Estás en <b>{register.name}</b>.</p>
           </div>
 
           <form onSubmit={handleOpenShift} className="p-8 space-y-6">

@@ -24,7 +24,7 @@ import { customerService } from '../services/customers';
 import { saleService } from '../services/sales';
 import { shiftService } from '../services/shifts';
 import { expenseService } from '../services/expenses';
-import { Product, Customer, Shift, User } from '../types';
+import { Product, Customer, Shift, User, CashRegister } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 import Ticket from '../components/Ticket';
@@ -33,9 +33,10 @@ import { cn } from '../lib/utils';
 
 interface POSProps {
   user: User;
+  register: CashRegister;
 }
 
-const POS: React.FC<POSProps> = ({ user }) => {
+const POS: React.FC<POSProps> = ({ user, register }) => {
   const { hasPermission } = usePermissions(user);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -79,7 +80,7 @@ const POS: React.FC<POSProps> = ({ user }) => {
       const [p, c, s] = await Promise.all([
         productService.getAll(),
         customerService.getAll(),
-        shiftService.getOpenShift()
+        shiftService.getOpenShift(user.id, register.id)
       ]);
       setProducts(p);
       setCustomers(c);
@@ -87,7 +88,7 @@ const POS: React.FC<POSProps> = ({ user }) => {
     } catch (err) {
       console.error(err);
     }
-  }, []);
+  }, [user.id, register.id]);
 
   useEffect(() => {
     loadInitialData();
@@ -228,7 +229,8 @@ const POS: React.FC<POSProps> = ({ user }) => {
         p_total: total,
         p_type: saleType,
         p_user_id: user.id,
-        p_shift_id: openShift.id
+        p_shift_id: openShift.id,
+        p_register_id: register.id
       });
 
       const saleRecord = await saleService.getSaleById(result);
@@ -250,7 +252,7 @@ const POS: React.FC<POSProps> = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  }, [openShift, cart, saleType, selectedCustomer, deposit, total, discount, paymentMethod, subtotal, user.id, loadInitialData]);
+  }, [openShift, cart, saleType, selectedCustomer, deposit, total, discount, paymentMethod, subtotal, user.id, register.id, loadInitialData]);
 
   // Keyboard Shortcuts
   useEffect(() => {

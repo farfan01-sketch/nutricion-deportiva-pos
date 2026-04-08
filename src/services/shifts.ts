@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Shift } from '../types';
 
 export const shiftService = {
-  async getOpenShift(userId?: string): Promise<Shift | null> {
+  async getOpenShift(userId?: string, registerId?: string): Promise<Shift | null> {
     let query = supabase
       .from('shifts')
       .select('*')
@@ -12,17 +12,22 @@ export const shiftService = {
       query = query.eq('user_id', userId);
     }
 
+    if (registerId) {
+      query = query.eq('register_id', registerId);
+    }
+
     const { data, error } = await query.maybeSingle();
 
     if (error) return null;
     return data;
   },
 
-  async openShift(userId: string, openingCash: number, notes?: string): Promise<Shift> {
+  async openShift(userId: string, registerId: string, openingCash: number, notes?: string): Promise<Shift> {
     const { data, error } = await supabase
       .from('shifts')
       .insert([{
         user_id: userId,
+        register_id: registerId,
         opening_cash: openingCash,
         status: 'open',
         opened_at: new Date().toISOString(),
@@ -282,17 +287,23 @@ export const shiftService = {
     return totals;
   },
 
-  async getHistory(): Promise<Shift[]> {
-    const { data, error } = await supabase
+  async getHistory(registerId?: string): Promise<Shift[]> {
+    let query = supabase
       .from('shifts')
       .select('*, user:users(name)')
       .order('opened_at', { ascending: false });
+
+    if (registerId) {
+      query = query.eq('register_id', registerId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data || [];
   },
 
-  async recalcOpenShift(): Promise<void> {
-    await supabase.rpc('recalc_open_shift');
+  async recalcOpenShift(registerId?: string): Promise<void> {
+    await supabase.rpc('recalc_open_shift', { p_register_id: registerId });
   }
 };

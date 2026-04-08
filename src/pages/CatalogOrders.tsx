@@ -15,7 +15,7 @@ import {
   Receipt,
   AlertCircle
 } from 'lucide-react';
-import { CatalogOrder, User } from '../types';
+import { CatalogOrder, User, CashRegister } from '../types';
 import { catalogService } from '../services/catalog';
 import { formatCurrency, formatDate } from '../utils/format';
 import Modal from '../components/Modal';
@@ -23,9 +23,10 @@ import ProcessWebOrderToSaleModal from '../components/orders/ProcessWebOrderToSa
 
 interface CatalogOrdersProps {
   user: User;
+  register: CashRegister;
 }
 
-const CatalogOrders: React.FC<CatalogOrdersProps> = ({ user }) => {
+const CatalogOrders: React.FC<CatalogOrdersProps> = ({ user, register }) => {
   const [orders, setOrders] = useState<CatalogOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -349,6 +350,7 @@ const CatalogOrders: React.FC<CatalogOrdersProps> = ({ user }) => {
           onClose={() => setIsProcessModalOpen(false)}
           order={selectedOrder}
           user={user}
+          register={register}
           onSuccess={loadOrders}
         />
       )}

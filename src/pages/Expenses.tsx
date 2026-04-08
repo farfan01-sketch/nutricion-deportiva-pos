@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, 
   History, 
@@ -11,11 +11,15 @@ import {
 } from 'lucide-react';
 import { expenseService } from '../services/expenses';
 import { shiftService } from '../services/shifts';
-import { Expense, Shift } from '../types';
+import { Expense, Shift, CashRegister } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/Modal';
 
-const Expenses: React.FC = () => {
+interface ExpensesProps {
+  register: CashRegister;
+}
+
+const Expenses: React.FC<ExpensesProps> = ({ register }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [openShift, setOpenShift] = useState<Shift | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,28 +30,28 @@ const Expenses: React.FC = () => {
     note: ''
   });
 
-  useEffect(() => {
-    loadExpenses();
-    loadOpenShift();
-  }, []);
-
-  const loadOpenShift = async () => {
+  const loadOpenShift = useCallback(async () => {
     try {
-      const shift = await shiftService.getOpenShift();
+      const shift = await shiftService.getOpenShift(undefined, register.id);
       setOpenShift(shift);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [register.id]);
 
-  const loadExpenses = async () => {
+  const loadExpenses = useCallback(async () => {
     try {
-      const data = await expenseService.getAll();
+      const data = await expenseService.getAll(register.id);
       setExpenses(data);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [register.id]);
+
+  useEffect(() => {
+    loadExpenses();
+    loadOpenShift();
+  }, [loadExpenses, loadOpenShift]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +60,11 @@ const Expenses: React.FC = () => {
       return;
     }
     try {
-      await expenseService.create({ ...formData, shift_id: openShift.id });
+      await expenseService.create({ 
+        ...formData, 
+        shift_id: openShift.id,
+        register_id: register.id
+      });
       setIsModalOpen(false);
       setFormData({ category: '', amount: 0, method: 'cash', note: '' });
       loadExpenses();
@@ -67,7 +75,7 @@ const Expenses: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de eliminar este registro de gasto?')) {
-      await expenseService.delete(id);
+      await expenseService.delete(id, register.id);
       loadExpenses();
     }
   };

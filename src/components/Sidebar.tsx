@@ -12,7 +12,8 @@ import {
   UserCircle,
   LogOut,
   Clock,
-  ShoppingBag
+  ShoppingBag,
+  Monitor
 } from 'lucide-react';
 import { User, PermissionModule } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
@@ -40,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
     { id: 'expenses', label: 'Gastos', icon: Wallet, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
     { id: 'shifts', label: 'Turnos', icon: Clock, roles: ['admin', 'staff'], module: 'sistema' as PermissionModule, permission: 'corte_turno_propio' },
     { id: 'reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'staff'], module: 'sistema' as PermissionModule, permission: 'ver_reportes' },
+    { id: 'registers', label: 'Cajas', icon: Monitor, roles: ['admin'] },
     { id: 'staff', label: 'Personal', icon: UserCircle, roles: ['admin'] },
   ];
 

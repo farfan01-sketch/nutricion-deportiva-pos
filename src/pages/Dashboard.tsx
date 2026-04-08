@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -36,7 +36,9 @@ import {
   WeeklyTrend, 
   TopProduct, 
   Shift,
-  LowStockProduct
+  LowStockProduct,
+  CashRegister,
+  User
 } from '../types';
 import { formatCurrency, formatDate } from '../utils/format';
 import { clsx, type ClassValue } from 'clsx';
@@ -46,7 +48,12 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  user: User;
+  register: CashRegister;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ user, register }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [trends, setTrends] = useState<WeeklyTrend[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
@@ -56,12 +63,20 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     // Solo permitir carga de datos si es admin
-    const savedUser = localStorage.getItem('pos_user');
-    const user = savedUser ? JSON.parse(savedUser) : null;
-    
-    if (user?.role !== 'admin') {
+    if (user.role !== 'admin') {
+      // If not admin, we still might want to see the current shift of the register
+      try {
+        const shift = await shiftService.getOpenShift(user.id, register.id);
+        setCurrentShift(shift);
+        if (shift) {
+          const totals = await shiftService.getShiftTotals(shift.id, shift.opened_at);
+          setShiftTotals(totals);
+        }
+      } catch (err) {
+        console.error('Error loading shift data:', err);
+      }
       setLoading(false);
       return;
     }
@@ -73,7 +88,7 @@ const Dashboard: React.FC = () => {
         reportService.getWeeklyTrends(),
         reportService.getTopProducts(),
         reportService.getLowStock(),
-        shiftService.getOpenShift()
+        shiftService.getOpenShift(user.id, register.id)
       ]);
 
       setStats(s);
@@ -94,11 +109,11 @@ const Dashboard: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user.id, user.role, register.id]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   if (loading) {
     return (
