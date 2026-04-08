@@ -16,6 +16,7 @@ const PermissionsForm: React.FC<PermissionsFormProps> = ({ user, onClose, onSave
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const loadPermissions = useCallback(async () => {
     try {
@@ -62,6 +63,7 @@ const PermissionsForm: React.FC<PermissionsFormProps> = ({ user, onClose, onSave
     try {
       setSaving(true);
       setError(null);
+      setSuccess(false);
       
       const permissionsToUpdate = Object.entries(permissions).map(([key, enabled]) => {
         const [module, permission] = key.split(':');
@@ -73,10 +75,16 @@ const PermissionsForm: React.FC<PermissionsFormProps> = ({ user, onClose, onSave
       });
 
       await permissionsService.updatePermissions(user.id, permissionsToUpdate);
-      onSave();
-    } catch (err) {
+      setSuccess(true);
+      
+      // Notificar éxito y cerrar después de un momento
+      setTimeout(() => {
+        onSave();
+      }, 1500);
+    } catch (err: any) {
       console.error('Error saving permissions:', err);
-      setError('Error al guardar los permisos');
+      const errorMsg = err.message || (typeof err === 'string' ? err : 'Error desconocido');
+      setError(`Error al guardar: ${errorMsg}`);
     } finally {
       setSaving(false);
     }
@@ -123,8 +131,16 @@ const PermissionsForm: React.FC<PermissionsFormProps> = ({ user, onClose, onSave
       )}
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium">
+        <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium flex items-center gap-3">
+          <AlertCircle size={20} className="shrink-0" />
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 text-sm font-medium flex items-center gap-3">
+          <Check size={20} className="shrink-0" />
+          Permisos guardados correctamente. Actualizando...
         </div>
       )}
 

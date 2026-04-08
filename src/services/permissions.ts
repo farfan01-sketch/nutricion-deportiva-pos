@@ -13,9 +13,6 @@ export const permissionsService = {
   },
 
   async updatePermissions(userId: string, permissions: { module: PermissionModule; permission: string; enabled: boolean }[]) {
-    // Primero eliminamos los permisos actuales para este usuario
-    // O mejor, usamos upsert si tenemos una clave única
-    
     const { error } = await supabase
       .from('users_permissions')
       .upsert(
@@ -28,7 +25,10 @@ export const permissionsService = {
         { onConflict: 'user_id,module,permission' }
       );
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error in updatePermissions:', error);
+      throw new Error(error.message || 'Error al actualizar los permisos en la base de datos');
+    }
   },
 
   async togglePermission(userId: string, module: PermissionModule, permission: string, enabled: boolean) {
@@ -41,6 +41,9 @@ export const permissionsService = {
         enabled
       }, { onConflict: 'user_id,module,permission' });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error in togglePermission:', error);
+      throw new Error(error.message || 'Error al cambiar el permiso');
+    }
   }
 };
