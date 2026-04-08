@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
   const { hasPermission } = usePermissions(user);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'staff'] },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
     { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
     { id: 'catalog-orders', label: 'Pedidos Web', icon: ShoppingBag, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
     { id: 'sales-history', label: 'Historial', icon: History, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule, permission: 'ver_historial_ventas' },

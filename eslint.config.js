@@ -1,57 +1,31 @@
-import { supabase } from '../lib/supabase';
-import { InventoryMovement } from '../types';
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
 
-export const inventoryService = {
-  async getMovements(limit = 50): Promise<InventoryMovement[]> {
-    const { data, error } = await supabase
-      .from('inventory_movements')
-      .select('*, products(name, code, brand)')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return data || [];
+export default tseslint.config(
+  { ignores: ['dist'] },
+  {
+    extends: [...tseslint.configs.recommended],
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parser: tseslint.parser,
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off'
+    },
   },
-
-  async createMovement(movement: Partial<InventoryMovement>): Promise<InventoryMovement> {
-    const { data, error } = await supabase
-      .from('inventory_movements')
-      .insert([movement])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async addStockWithPriceUpdate(
-    movement: Partial<InventoryMovement>, 
-    productUpdates: { cost: number; price_retail: number; price_wholesale: number }
-  ): Promise<void> {
-    // 1. Create movement (trigger will update stock)
-    const { error: moveError } = await supabase
-      .from('inventory_movements')
-      .insert([movement]);
-    
-    if (moveError) throw moveError;
-
-    // 2. Update product prices/cost
-    const { error: prodError } = await supabase
-      .from('products')
-      .update(productUpdates)
-      .eq('id', movement.product_id);
-    
-    if (prodError) throw prodError;
-  },
-
-  async getKardex(productId: string): Promise<InventoryMovement[]> {
-    const { data, error } = await supabase
-      .from('inventory_movements')
-      .select('*, products(name, code, brand, cost, stock_min)')
-      .eq('product_id', productId)
-      .order('created_at', { ascending: true }); // Ascending for chronological balance calculation
-
-    if (error) throw error;
-    return data || [];
-  }
-};
+);

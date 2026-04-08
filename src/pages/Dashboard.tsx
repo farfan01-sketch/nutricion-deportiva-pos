@@ -57,6 +57,15 @@ const Dashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
+    // Solo permitir carga de datos si es admin
+    const savedUser = localStorage.getItem('pos_user');
+    const user = savedUser ? JSON.parse(savedUser) : null;
+    
+    if (user?.role !== 'admin') {
+      setLoading(false);
+      return;
+    }
+
     setRefreshing(true);
     try {
       const [s, t, tp, ls, shift] = await Promise.all([

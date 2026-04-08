@@ -19,6 +19,7 @@ import PublicCatalog from './pages/PublicCatalog';
 import CatalogOrders from './pages/CatalogOrders';
 import { shiftService } from './services/shifts';
 import LogoutWithShiftModal from './components/auth/LogoutWithShiftModal';
+import AdminGuard from './components/auth/AdminGuard';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -74,7 +75,7 @@ const App: React.FC = () => {
     setUser(userData);
     localStorage.setItem('pos_user', JSON.stringify(userData));
     checkUserShift(userData);
-    setCurrentView('dashboard');
+    setCurrentView(userData.role === 'admin' ? 'dashboard' : 'pos');
   };
 
   const handleLogoutClick = async () => {
@@ -136,8 +137,12 @@ const App: React.FC = () => {
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <Dashboard />;
-      case 'pos': return <POS user={user} />;
+      case 'dashboard': return (
+        <AdminGuard user={user!}>
+          <Dashboard />
+        </AdminGuard>
+      );
+      case 'pos': return <POS user={user!} />;
       case 'sales-history': return <SalesHistory user={user} />;
       case 'products': return <Products user={user} />;
       case 'inventory': return <Inventory user={user} />;
@@ -146,8 +151,16 @@ const App: React.FC = () => {
       case 'layaways': return <Layaways user={user} />;
       case 'expenses': return <Expenses />;
       case 'shifts': return <Shifts user={user} />;
-      case 'reports': return <Reports />;
-      case 'staff': return <UsersPage />;
+      case 'reports': return (
+        <AdminGuard user={user!}>
+          <Reports />
+        </AdminGuard>
+      );
+      case 'staff': return (
+        <AdminGuard user={user!}>
+          <UsersPage />
+        </AdminGuard>
+      );
       case 'catalog-orders': return <CatalogOrders />;
       default: return <Dashboard />;
     }
