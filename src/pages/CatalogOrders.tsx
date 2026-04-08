@@ -17,9 +17,7 @@ import {
 } from 'lucide-react';
 import { CatalogOrder } from '../types';
 import { catalogService } from '../services/catalog';
-import { formatCurrency } from '../utils/format';
-import { formatDate } from '../utils/date';
-import { cn } from '../lib/utils';
+import { formatCurrency, formatDate } from '../utils/format';
 import Modal from '../components/Modal';
 
 const CatalogOrders: React.FC = () => {

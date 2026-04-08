@@ -3,7 +3,6 @@ import { ShoppingCart, Search, Package, Check, X, Phone, MapPin, User, MessageSq
 import { Product } from '../types';
 import { catalogService } from '../services/catalog';
 import { formatCurrency } from '../utils/format';
-import { cn } from '../lib/utils';
 
 interface CartItem {
   product: Product;
