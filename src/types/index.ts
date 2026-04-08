@@ -262,6 +262,30 @@ export interface SaleProfit {
   profit: number;
 }
 
+export interface CatalogOrder {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address?: string;
+  notes?: string;
+  total: number;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  created_at: string;
+  // Join
+  items?: CatalogOrderItem[];
+}
+
+export interface CatalogOrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  created_at: string;
+  // Join
+  product?: Product;
+}
+
 export type PermissionModule = 'ventas' | 'clientes' | 'productos' | 'inventario' | 'sistema';
 
 export interface UserPermission {

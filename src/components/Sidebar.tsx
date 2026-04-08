@@ -11,7 +11,8 @@ import {
   BarChart3, 
   UserCircle,
   LogOut,
-  Clock
+  Clock,
+  ShoppingBag
 } from 'lucide-react';
 import { User, PermissionModule } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
@@ -29,6 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'staff'] },
     { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
+    { id: 'catalog-orders', label: 'Pedidos Web', icon: ShoppingBag, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
     { id: 'sales-history', label: 'Historial', icon: History, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule, permission: 'ver_historial_ventas' },
     { id: 'products', label: 'Productos', icon: Package, roles: ['admin', 'staff'], module: 'productos' as PermissionModule },
     { id: 'inventory', label: 'Inventario', icon: BarChart3, roles: ['admin', 'staff'], module: 'inventario' as PermissionModule },

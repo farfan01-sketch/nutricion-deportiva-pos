@@ -15,6 +15,8 @@ import Shifts from './pages/Shifts';
 import Reports from './pages/Reports';
 import UsersPage from './pages/UsersPage';
 import SalesHistory from './pages/SalesHistory';
+import PublicCatalog from './pages/PublicCatalog';
+import CatalogOrders from './pages/CatalogOrders';
 import { shiftService } from './services/shifts';
 import LogoutWithShiftModal from './components/auth/LogoutWithShiftModal';
 
@@ -25,6 +27,9 @@ const App: React.FC = () => {
   const [requiresShiftOpening, setRequiresShiftOpening] = useState(false);
   const [checkingShift, setCheckingShift] = useState(false);
   
+  // Simple path-based routing for public catalog
+  const isPublicCatalog = window.location.pathname === '/catalog' || window.location.pathname === '/catalogo';
+
   // Logout with shift states
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [openShiftForLogout, setOpenShiftForLogout] = useState<any>(null);
@@ -105,6 +110,10 @@ const App: React.FC = () => {
     setRequiresShiftOpening(false);
   };
 
+  if (isPublicCatalog) {
+    return <PublicCatalog />;
+  }
+
   if (!isAuthReady || checkingShift) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -139,6 +148,7 @@ const App: React.FC = () => {
       case 'shifts': return <Shifts user={user} />;
       case 'reports': return <Reports />;
       case 'staff': return <UsersPage />;
+      case 'catalog-orders': return <CatalogOrders />;
       default: return <Dashboard />;
     }
   };
