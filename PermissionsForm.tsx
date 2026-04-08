@@ -1,250 +1,298 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  PieChart, 
-  Download,
-  DollarSign,
-  RotateCcw,
-  Receipt
-} from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell,
-  PieChart as RePieChart,
-  Pie
-} from 'recharts';
-import { reportService } from '../services/reports';
-import { formatCurrency } from '../utils/format';
+import { supabase } from '../lib/supabase';
+import { Shift } from '../types';
 
-const Reports: React.FC = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [topProducts, setTopProducts] = useState<any[]>([]);
-  const [profitData, setProfitData] = useState<any[]>([]);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-      const [s, tp, pd] = await Promise.all([
-        reportService.getDashboardStats(),
-        reportService.getTopProducts(),
-        reportService.getSalesProfit(thirtyDaysAgo.toISOString(), now.toISOString())
-      ]);
-      setStats(s);
-      setTopProducts(tp);
-      setProfitData(pd);
-    } catch (err) {
-      console.error(err);
+export const shiftService = {
+  async getOpenShift(userId?: string): Promise<Shift | null> {
+    let query = supabase
+      .from('shifts')
+      .select('*')
+      .eq('status', 'open');
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
     }
-  };
 
-  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const { data, error } = await query.maybeSingle();
 
-  return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Reportes y Estadísticas</h1>
-          <p className="text-slate-500">Análisis detallado del rendimiento de tu negocio.</p>
-        </div>
-        <button className="bg-white text-slate-700 border border-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-50 transition-all">
-          <Download size={18} />
-          Exportar PDF
-        </button>
-      </div>
+    if (error) return null;
+    return data;
+  },
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-              <TrendingUp size={20} />
-            </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12%</span>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Brutas Hoy</p>
-          <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.sales_gross_today || 0)}</h3>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-              <RotateCcw size={20} />
-            </div>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Devoluciones Hoy</p>
-          <h3 className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(stats?.returns_today || 0)}</h3>
-          {(stats?.returns_cash_today > 0 || stats?.returns_card_today > 0 || stats?.returns_transfer_today > 0) && (
-            <div className="mt-2 pt-2 border-t border-slate-50 space-y-1">
-              {stats?.returns_cash_today > 0 && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-slate-500">Efectivo:</span>
-                  <span className="font-bold text-slate-700">{formatCurrency(stats.returns_cash_today)}</span>
-                </div>
-              )}
-              {stats?.returns_card_today > 0 && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-slate-500">Tarjeta:</span>
-                  <span className="font-bold text-slate-700">{formatCurrency(stats.returns_card_today)}</span>
-                </div>
-              )}
-              {stats?.returns_transfer_today > 0 && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-slate-500">Transf:</span>
-                  <span className="font-bold text-slate-700">{formatCurrency(stats.returns_transfer_today)}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-              <Receipt size={20} />
-            </div>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Abonos Apartados Hoy</p>
-          <h3 className="text-xl font-bold text-blue-600 mt-1">{formatCurrency(stats?.layaway_payments_today || 0)}</h3>
-          {(stats?.layaway_cash_today > 0 || stats?.layaway_card_today > 0 || stats?.layaway_transfer_today > 0) && (
-            <div className="mt-2 pt-2 border-t border-slate-50 space-y-1">
-              {stats?.layaway_cash_today > 0 && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-slate-500">Efectivo:</span>
-                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_cash_today)}</span>
-                </div>
-              )}
-              {stats?.layaway_card_today > 0 && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-slate-500">Tarjeta:</span>
-                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_card_today)}</span>
-                </div>
-              )}
-              {stats?.layaway_transfer_today > 0 && (
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-slate-500">Transf:</span>
-                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_transfer_today)}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
-              <DollarSign size={20} />
-            </div>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Netas Hoy</p>
-          <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency(stats?.sales_net_today || 0)}</h3>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
-              <TrendingDown size={20} />
-            </div>
-          </div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gastos Hoy</p>
-          <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.expenses_today || 0)}</h3>
-        </div>
-      </div>
+  async openShift(userId: string, openingCash: number, notes?: string): Promise<Shift> {
+    const { data, error } = await supabase
+      .from('shifts')
+      .insert([{
+        user_id: userId,
+        opening_cash: openingCash,
+        status: 'open',
+        opened_at: new Date().toISOString(),
+        notes: notes
+      }])
+      .select()
+      .single();
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Sales Performance Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 size={20} className="text-primary-500" />
-              Rendimiento de Ventas
-            </h3>
-            <select className="text-xs font-bold text-slate-500 bg-slate-50 border-none rounded-lg focus:ring-0">
-              <option>Últimos 7 días</option>
-              <option>Este mes</option>
-            </select>
-          </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={(profitData || []).slice(0, 7)}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="created_at" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 10, fill: '#94a3b8'}}
-                  tickFormatter={(val) => new Date(val).toLocaleDateString('es-MX', { weekday: 'short' })}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 10, fill: '#94a3b8'}}
-                  tickFormatter={(val) => `$${val}`}
-                />
-                <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                  formatter={(val: number) => [formatCurrency(val), 'Venta']}
-                />
-                <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+    if (error) throw error;
+    return data;
+  },
 
-        {/* Top Products Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-              <PieChart size={20} className="text-emerald-500" />
-              Productos Más Vendidos
-            </h3>
-          </div>
-          <div className="h-[300px] flex items-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <RePieChart>
-                <Pie
-                  data={topProducts}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="total_sold"
-                  nameKey="name"
-                >
-                  {topProducts.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                />
-              </RePieChart>
-            </ResponsiveContainer>
-            <div className="w-1/2 space-y-3">
-              {(topProducts || []).slice(0, 5).map((p, i) => (
-                <div key={p.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[i % COLORS.length]}} />
-                    <span className="text-xs font-medium text-slate-600 truncate max-w-[120px]">{p.name}</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900">{p.total_sold} ud.</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  async closeShift(id: string, closingCash: number, totals: any): Promise<Shift> {
+    const { data, error } = await supabase
+      .from('shifts')
+      .update({
+        closing_cash: closingCash,
+        expected_cash: totals.expected_cash,
+        total_sales: totals.total_sales,
+        total_expenses: totals.total_expenses,
+        difference: closingCash - totals.expected_cash,
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        
+        // Save audit metrics
+        cash_sales: totals.cash_sales,
+        card_sales: totals.card_sales,
+        transfer_sales: totals.transfer_sales,
+        layaway_cash: totals.layaway_cash_payments,
+        layaway_card: totals.layaway_card_payments,
+        layaway_transfer: totals.layaway_transfer_payments,
+        cash_expenses: totals.cash_expenses,
+        cash_returns: totals.cash_returns,
+        card_returns: totals.card_returns,
+        transfer_returns: totals.transfer_returns,
+        real_profit: totals.real_profit,
+        total_cogs: totals.total_cogs
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getShiftTotals(shiftId: string, openedAt: string, closedAt?: string): Promise<any> {
+    const end = closedAt || new Date().toISOString();
+    
+    // Get sales
+    let salesQuery = supabase
+      .from('sales')
+      .select('total, payment_method, type')
+      .eq('status', 'completed');
+
+    if (shiftId) {
+      salesQuery = salesQuery.eq('shift_id', shiftId);
+    } else {
+      salesQuery = salesQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: sales, error: salesError } = await salesQuery;
+
+    if (salesError) throw salesError;
+
+    // Get expenses
+    let expensesQuery = supabase
+      .from('expenses')
+      .select('amount, method');
+
+    if (shiftId) {
+      expensesQuery = expensesQuery.eq('shift_id', shiftId);
+    } else {
+      expensesQuery = expensesQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: expenses, error: expensesError } = await expensesQuery;
+    if (expensesError) throw expensesError;
+
+    // Get layaway payments
+    let layawayPaymentsQuery = supabase
+      .from('layaway_payments')
+      .select('amount, payment_method');
+
+    if (shiftId) {
+      layawayPaymentsQuery = layawayPaymentsQuery.eq('shift_id', shiftId);
+    } else {
+      layawayPaymentsQuery = layawayPaymentsQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: layawayPayments, error: layawayPaymentsError } = await layawayPaymentsQuery;
+    if (layawayPaymentsError) throw layawayPaymentsError;
+
+    // Get returns
+    let returnsQuery = supabase
+      .from('sale_returns')
+      .select('total_returned, return_method');
+
+    if (shiftId) {
+      returnsQuery = returnsQuery.eq('shift_id', shiftId);
+    } else {
+      returnsQuery = returnsQuery.gte('created_at', openedAt).lte('created_at', end);
+    }
+
+    const { data: returns, error: returnsError } = await returnsQuery;
+    
+    // If there's an error (e.g. return_method column missing), try without it
+    let finalReturns: any[] | null = returns;
+    if (returnsError) {
+      console.warn('Error fetching returns with return_method, trying without it:', returnsError);
+      const { data: fallbackReturns, error: fallbackError } = await supabase
+        .from('sale_returns')
+        .select('total_returned')
+        .eq(shiftId ? 'shift_id' : 'created_at', shiftId || openedAt); // This is a bit simplified but good enough for fallback
+      
+      if (fallbackError) {
+        console.error('Error in fallback returns query:', fallbackError);
+        finalReturns = [];
+      } else {
+        finalReturns = fallbackReturns;
+      }
+    }
+
+    const totals = {
+      total_sales: 0,
+      cash_sales: 0,
+      transfer_sales: 0,
+      card_sales: 0,
+      mixed_sales: 0,
+      layaways: 0,
+      layaway_cash_payments: 0,
+      layaway_card_payments: 0,
+      layaway_transfer_payments: 0,
+      total_expenses: 0,
+      cash_expenses: 0,
+      total_returns: 0,
+      cash_returns: 0,
+      card_returns: 0,
+      transfer_returns: 0,
+      expected_cash: 0,
+      total_cogs: 0,
+      real_profit: 0
+    };
+
+    // Get sale items for COGS
+    let saleItemsQuery = supabase
+      .from('sale_items')
+      .select('quantity, cost, sales!inner(status, type, shift_id, created_at)')
+      .eq('sales.status', 'completed')
+      .eq('sales.type', 'sale');
+
+    if (shiftId) {
+      saleItemsQuery = saleItemsQuery.eq('sales.shift_id', shiftId);
+    } else {
+      saleItemsQuery = saleItemsQuery.gte('sales.created_at', openedAt).lte('sales.created_at', end);
+    }
+    const { data: saleItems } = await saleItemsQuery;
+
+    // Get return items for COGS recovery
+    let returnItemsQuery = supabase
+      .from('return_items')
+      .select('quantity, cost, sale_returns!inner(shift_id, created_at)');
+
+    if (shiftId) {
+      returnItemsQuery = returnItemsQuery.eq('sale_returns.shift_id', shiftId);
+    } else {
+      returnItemsQuery = returnItemsQuery.gte('sale_returns.created_at', openedAt).lte('sale_returns.created_at', end);
+    }
+    const { data: returnItems } = await returnItemsQuery;
+
+    let totalCogs = 0;
+    saleItems?.forEach(item => {
+      const cost = Number(item.cost) || 0;
+      const quantity = Number(item.quantity) || 0;
+      totalCogs += (cost * quantity);
+    });
+
+    let recoveredCogs = 0;
+    returnItems?.forEach(item => {
+      const cost = Number(item.cost) || 0;
+      const quantity = Number(item.quantity) || 0;
+      recoveredCogs += (cost * quantity);
+    });
+
+    totals.total_cogs = totalCogs - recoveredCogs;
+
+    sales?.forEach(sale => {
+      const total = Number(sale.total) || 0;
+      // Solo sumamos ventas normales, los apartados se cuentan por sus abonos
+      if (sale.type === 'sale') {
+        totals.total_sales += total;
+        switch (sale.payment_method) {
+          case 'cash': totals.cash_sales += total; break;
+          case 'transfer': totals.transfer_sales += total; break;
+          case 'card': totals.card_sales += total; break;
+          case 'mixed': totals.mixed_sales += total; break;
+        }
+      }
+      
+      if (sale.type === 'layaway') {
+        totals.layaways += total;
+      }
+    });
+
+    layawayPayments?.forEach(payment => {
+      const amount = Number(payment.amount) || 0;
+      totals.total_sales += amount;
+      switch (payment.payment_method) {
+        case 'cash': 
+          totals.cash_sales += amount; 
+          totals.layaway_cash_payments += amount;
+          break;
+        case 'transfer': 
+          totals.transfer_sales += amount; 
+          totals.layaway_transfer_payments += amount;
+          break;
+        case 'card': 
+          totals.card_sales += amount; 
+          totals.layaway_card_payments += amount;
+          break;
+      }
+    });
+
+    expenses?.forEach(exp => {
+      const amount = Number(exp.amount) || 0;
+      totals.total_expenses += amount;
+      // Por defecto, si no tiene método o es 'cash', se resta del efectivo
+      if (exp.method === 'cash' || !exp.method) {
+        totals.cash_expenses += amount;
+      }
+    });
+
+    finalReturns?.forEach((ret: any) => {
+      const totalReturned = Number(ret.total_returned) || 0;
+      totals.total_returns += totalReturned;
+      // Si no hay return_method (fallback), asumimos cash por compatibilidad
+      if (!ret.return_method || ret.return_method === 'cash') {
+        totals.cash_returns += totalReturned;
+      } else if (ret.return_method === 'card') {
+        totals.card_returns += totalReturned;
+      } else if (ret.return_method === 'transfer') {
+        totals.transfer_returns += totalReturned;
+      }
+    });
+
+    // Final validation to avoid NaN
+    totals.total_sales = Number(totals.total_sales) || 0;
+    totals.total_returns = Number(totals.total_returns) || 0;
+    totals.total_cogs = Number(totals.total_cogs) || 0;
+    totals.total_expenses = Number(totals.total_expenses) || 0;
+
+    totals.real_profit = (totals.total_sales - totals.total_returns) - totals.total_cogs - totals.total_expenses;
+    
+    // Ensure expected_cash is also valid
+    totals.expected_cash = (Number(totals.cash_sales) || 0) - (Number(totals.cash_expenses) || 0) - (Number(totals.cash_returns) || 0);
+
+    return totals;
+  },
+
+  async getHistory(): Promise<Shift[]> {
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*, user:users(name)')
+      .order('opened_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async recalcOpenShift(): Promise<void> {
+    await supabase.rpc('recalc_open_shift');
+  }
 };
-
-export default Reports;

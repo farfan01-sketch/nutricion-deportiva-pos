@@ -1,39 +1,50 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { permissionsService } from '../services/permissions';
+import { UserPermission, PermissionModule, User } from '../types';
 
-interface UseBarcodeInputOptions {
-  onScan: (code: string) => void;
-  autoFocus?: boolean;
-}
+export const usePermissions = (user: User | null) => {
+  const [permissions, setPermissions] = useState<UserPermission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export const useBarcodeInput = ({ onScan, autoFocus = true }: UseBarcodeInputOptions) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const code = e.currentTarget.value.trim();
-      if (code) {
-        onScan(code);
-        e.currentTarget.value = ''; // Clear after scan
-      }
+  const loadPermissions = useCallback(async () => {
+    if (!user) {
+      setPermissions([]);
+      setLoading(false);
+      return;
     }
-  }, [onScan]);
+
+    try {
+      setLoading(true);
+      const data = await permissionsService.getPermissionsByUserId(user.id);
+      setPermissions(data);
+    } catch (err) {
+      console.error('Error loading permissions:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (autoFocus && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [autoFocus]);
+    loadPermissions();
+  }, [loadPermissions]);
 
-  // Function to manually refocus
-  const refocus = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+  const hasPermission = useCallback((module: PermissionModule, permission: string): boolean => {
+    // Los administradores tienen todos los permisos por defecto
+    if (user?.role === 'admin') return true;
+    
+    const perm = permissions.find(p => p.module === module && p.permission === permission);
+    return perm ? perm.enabled : false;
+  }, [permissions, user]);
+
+  const getPermissionsByModule = useCallback((module: PermissionModule): UserPermission[] => {
+    return permissions.filter(p => p.module === module);
+  }, [permissions]);
 
   return {
-    inputRef,
-    handleKeyDown,
-    refocus
+    permissions,
+    loading,
+    hasPermission,
+    getPermissionsByModule,
+    refreshPermissions: loadPermissions
   };
 };

@@ -1,10 +1,10 @@
 import { supabase } from '../lib/supabase';
-import { Customer } from '../types';
+import { Supplier } from '../types';
 
-export const customerService = {
-  async getAll(): Promise<Customer[]> {
+export const supplierService = {
+  async getAll(): Promise<Supplier[]> {
     const { data, error } = await supabase
-      .from('customers')
+      .from('suppliers')
       .select('*')
       .order('name', { ascending: true });
 
@@ -12,10 +12,10 @@ export const customerService = {
     return data || [];
   },
 
-  async create(customer: Partial<Customer>): Promise<Customer> {
+  async create(supplier: Partial<Supplier>): Promise<Supplier> {
     const { data, error } = await supabase
-      .from('customers')
-      .insert([customer])
+      .from('suppliers')
+      .insert([supplier])
       .select()
       .single();
 
@@ -23,10 +23,10 @@ export const customerService = {
     return data;
   },
 
-  async update(id: string, customer: Partial<Customer>): Promise<Customer> {
+  async update(id: string, supplier: Partial<Supplier>): Promise<Supplier> {
     const { data, error } = await supabase
-      .from('customers')
-      .update(customer)
+      .from('suppliers')
+      .update(supplier)
       .eq('id', id)
       .select()
       .single();
@@ -37,7 +37,7 @@ export const customerService = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('customers')
+      .from('suppliers')
       .delete()
       .eq('id', id);
 

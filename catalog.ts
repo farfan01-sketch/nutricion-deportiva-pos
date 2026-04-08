@@ -1,95 +1,252 @@
-import React from 'react';
-import { formatCurrency, formatDate } from '../utils/format';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, Check, AlertCircle } from 'lucide-react';
+import { User, PermissionModule, PERMISSIONS_BY_MODULE } from '../../types';
+import { permissionsService } from '../../services/permissions';
+import { cn } from '../../lib/utils';
 
-interface LayawayPaymentTicketProps {
-  payment: any;
-  layaway: any;
-  businessName?: string;
+interface PermissionsFormProps {
+  user: User;
+  onClose: () => void;
+  onSave: () => void;
 }
 
-const LayawayPaymentTicket = React.forwardRef<HTMLDivElement, LayawayPaymentTicketProps>(({ 
-  payment, 
-  layaway, 
-  businessName = 'NUTRICIÓN DEPORTIVA' 
-}, ref) => {
-  if (!payment || !layaway) return null;
+const PermissionsForm: React.FC<PermissionsFormProps> = ({ user, onClose, onSave }) => {
+  const [activeTab, setActiveTab] = useState<PermissionModule>('ventas');
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const loadPermissions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const userPerms = await permissionsService.getPermissionsByUserId(user.id);
+      const permsMap: Record<string, boolean> = {};
+      
+      // Inicializar todos los permisos posibles como false
+      Object.keys(PERMISSIONS_BY_MODULE).forEach(module => {
+        PERMISSIONS_BY_MODULE[module as PermissionModule].forEach(p => {
+          permsMap[`${module}:${p.id}`] = false;
+        });
+      });
+
+      // Marcar los que el usuario tiene habilitados
+      userPerms.forEach(p => {
+        if (p.enabled) {
+          permsMap[`${p.module}:${p.permission}`] = true;
+        }
+      });
+
+      setPermissions(permsMap);
+    } catch (err) {
+      console.error('Error loading permissions:', err);
+      setError('No se pudieron cargar los permisos');
+    } finally {
+      setLoading(false);
+    }
+  }, [user.id]);
+
+  useEffect(() => {
+    loadPermissions();
+  }, [loadPermissions]);
+
+  const handleToggle = (module: PermissionModule, permissionId: string) => {
+    const key = `${module}:${permissionId}`;
+    setPermissions(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      setSuccess(false);
+      
+      const permissionsToUpdate = Object.entries(permissions).map(([key, enabled]) => {
+        const [module, permission] = key.split(':');
+        return {
+          module: module as PermissionModule,
+          permission,
+          enabled
+        };
+      });
+
+      await permissionsService.updatePermissions(user.id, permissionsToUpdate);
+      setSuccess(true);
+      
+      // Notificar éxito y cerrar después de un momento
+      setTimeout(() => {
+        onSave();
+      }, 1500);
+    } catch (err: any) {
+      console.error('Error saving permissions:', err);
+      const errorMsg = err.message || (typeof err === 'string' ? err : 'Error desconocido');
+      setError(`Error al guardar: ${errorMsg}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSelectAll = (module: PermissionModule, select: boolean) => {
+    const newPerms = { ...permissions };
+    PERMISSIONS_BY_MODULE[module].forEach(p => {
+      newPerms[`${module}:${p.id}`] = select;
+    });
+    setPermissions(newPerms);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-medium">Cargando permisos...</p>
+      </div>
+    );
+  }
 
   return (
-    <div ref={ref} className="p-8 bg-white text-black font-mono text-sm w-[80mm] mx-auto" style={{ fontFamily: 'monospace' }}>
-      <div className="text-center mb-6">
-        <h2 className="text-lg font-bold">{businessName}</h2>
-        <p className="text-xs font-bold mt-1">RECIBO DE ABONO</p>
-        <p className="text-xs">¡Gracias por su pago!</p>
-      </div>
-
-      <div className="border-b border-dashed border-black pb-4 mb-4 space-y-1 text-xs">
-        <div className="flex justify-between">
-          <span>Folio Abono:</span>
-          <span className="font-bold">
-            {payment.receipt_number 
-              ? `AB-${String(payment.receipt_number).padStart(6, '0')}`
-              : `AB-${payment.id.slice(0, 6).toUpperCase()}`
-            }
-          </span>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600">
+          <Shield size={24} />
         </div>
-        <div className="flex justify-between">
-          <span>Ticket Original:</span>
-          <span>#{layaway.sales?.ticket_number || layaway.sale_id.slice(0, 8)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Fecha:</span>
-          <span>{formatDate(payment.created_at)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Atendió:</span>
-          <span>{payment.user_name || 'Cajero'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Cliente:</span>
-          <span>{layaway.sales?.customer?.name || 'Cliente General'}</span>
+        <div>
+          <h3 className="font-bold text-slate-900">Permisos de {user.name}</h3>
+          <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">
+            Rol: {user.role === 'admin' ? 'Administrador' : 'Personal'}
+          </p>
         </div>
       </div>
 
-      <div className="space-y-2 mb-6">
-        <div className="flex justify-between text-base font-black border-y border-dashed border-black py-2">
-          <span>MONTO ABONADO:</span>
-          <span>{formatCurrency(payment.amount)}</span>
-        </div>
-        <div className="flex justify-between text-xs pt-2">
-          <span>Método de Pago:</span>
-          <span className="capitalize">{payment.payment_method}</span>
-        </div>
-      </div>
-
-      <div className="space-y-1 text-xs border-t border-dashed border-black pt-4">
-        <div className="flex justify-between">
-          <span>Total de la Venta:</span>
-          <span>{formatCurrency(layaway.sales?.total || 0)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Saldo Anterior:</span>
-          <span>{formatCurrency(payment.previous_balance || (layaway.balance + payment.amount))}</span>
-        </div>
-        <div className="flex justify-between font-bold text-sm pt-2">
-          <span>NUEVO SALDO:</span>
-          <span>{formatCurrency(payment.new_balance ?? layaway.balance)}</span>
-        </div>
-      </div>
-
-      {payment.notes && (
-        <div className="mt-4 text-[10px] italic">
-          <p>Notas: {payment.notes}</p>
+      {user.role === 'admin' && (
+        <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 text-amber-700">
+          <AlertCircle size={20} className="shrink-0" />
+          <p className="text-xs font-medium">
+            Los administradores tienen acceso total al sistema. Los permisos granulares se aplican principalmente a usuarios con rol "Personal".
+          </p>
         </div>
       )}
 
-      <div className="text-center mt-8 text-[10px]">
-        <p>Estado del Apartado: {(payment.new_balance ?? layaway.balance) <= 0 ? 'COMPLETADO' : 'PENDIENTE'}</p>
-        <p className="mt-2">Conserve este recibo para su control de pagos</p>
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium flex items-center gap-3">
+          <AlertCircle size={20} className="shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 text-sm font-medium flex items-center gap-3">
+          <Check size={20} className="shrink-0" />
+          Permisos guardados correctamente. Actualizando...
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-4">
+        {(Object.keys(PERMISSIONS_BY_MODULE) as PermissionModule[]).map(module => (
+          <button
+            key={module}
+            onClick={() => setActiveTab(module)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all",
+              activeTab === module 
+                ? "bg-primary-600 text-white shadow-lg shadow-primary-100" 
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            )}
+          >
+            {module}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
+            Módulo: {activeTab}
+          </h4>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => handleSelectAll(activeTab, true)}
+              className="text-[10px] font-bold text-primary-600 hover:underline uppercase"
+            >
+              Marcar Todo
+            </button>
+            <span className="text-slate-300">|</span>
+            <button 
+              onClick={() => handleSelectAll(activeTab, false)}
+              className="text-[10px] font-bold text-slate-400 hover:underline uppercase"
+            >
+              Desmarcar Todo
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {PERMISSIONS_BY_MODULE[activeTab].map(p => {
+            const isEnabled = permissions[`${activeTab}:${p.id}`];
+            return (
+              <label
+                key={p.id}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all group",
+                  isEnabled 
+                    ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                    : "bg-white border-slate-100 text-slate-600 hover:border-slate-200"
+                )}
+              >
+                <span className="text-sm font-medium">{p.label}</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={isEnabled}
+                    onChange={() => handleToggle(activeTab, p.id)}
+                  />
+                  <div className={cn(
+                    "w-10 h-6 rounded-full transition-colors flex items-center px-1",
+                    isEnabled ? "bg-emerald-500" : "bg-slate-200"
+                  )}>
+                    <div className={cn(
+                      "w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
+                      isEnabled ? "translate-x-4" : "translate-x-0"
+                    )} />
+                  </div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex gap-4 pt-4 border-t border-slate-100">
+        <button
+          onClick={onClose}
+          className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex-1 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              Guardando...
+            </>
+          ) : (
+            <>
+              <Check size={20} />
+              Guardar Permisos
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
-});
+};
 
-LayawayPaymentTicket.displayName = 'LayawayPaymentTicket';
-
-export default LayawayPaymentTicket;
+export default PermissionsForm;

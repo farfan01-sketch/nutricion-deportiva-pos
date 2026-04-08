@@ -1,49 +1,33 @@
-import { supabase } from '../lib/supabase';
-import { UserPermission, PermissionModule } from '../types';
+import React from 'react';
+import { ShieldAlert } from 'lucide-react';
+import { User } from '../../types';
 
-export const permissionsService = {
-  async getPermissionsByUserId(userId: string): Promise<UserPermission[]> {
-    const { data, error } = await supabase
-      .from('users_permissions')
-      .select('*')
-      .eq('user_id', userId);
+interface AdminGuardProps {
+  user: User;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
 
-    if (error) throw error;
-    return data || [];
-  },
+const AdminGuard: React.FC<AdminGuardProps> = ({ user, children, fallback }) => {
+  const isAdmin = user.role === 'admin';
 
-  async updatePermissions(userId: string, permissions: { module: PermissionModule; permission: string; enabled: boolean }[]) {
-    const { error } = await supabase
-      .from('users_permissions')
-      .upsert(
-        permissions.map(p => ({
-          user_id: userId,
-          module: p.module,
-          permission: p.permission,
-          enabled: p.enabled
-        })),
-        { onConflict: 'user_id,module,permission' }
-      );
-
-    if (error) {
-      console.error('Error in updatePermissions:', error);
-      throw new Error(error.message || 'Error al actualizar los permisos en la base de datos');
-    }
-  },
-
-  async togglePermission(userId: string, module: PermissionModule, permission: string, enabled: boolean) {
-    const { error } = await supabase
-      .from('users_permissions')
-      .upsert({
-        user_id: userId,
-        module,
-        permission,
-        enabled
-      }, { onConflict: 'user_id,module,permission' });
-
-    if (error) {
-      console.error('Error in togglePermission:', error);
-      throw new Error(error.message || 'Error al cambiar el permiso');
-    }
+  if (!isAdmin) {
+    if (fallback) return <>{fallback}</>;
+    
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center animate-in fade-in duration-500">
+        <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 mb-6">
+          <ShieldAlert size={40} />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Acceso Restringido</h2>
+        <p className="text-slate-500 max-w-md mx-auto">
+          No tienes permisos para acceder a este módulo. Esta sección está reservada exclusivamente para administradores.
+        </p>
+      </div>
+    );
   }
+
+  return <>{children}</>;
 };
+
+export default AdminGuard;

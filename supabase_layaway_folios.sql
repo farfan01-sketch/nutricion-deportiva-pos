@@ -1,14 +1,10 @@
--- 1. Actualizar restricción de estado en la tabla layaways
-ALTER TABLE layaways DROP CONSTRAINT IF EXISTS layaways_status_check;
-ALTER TABLE layaways ADD CONSTRAINT layaways_status_check CHECK (status IN ('pending', 'completed', 'cancelled', 'paid'));
+-- 1. Agregar columna receipt_number a layaway_payments si no existe
+ALTER TABLE layaway_payments ADD COLUMN IF NOT EXISTS receipt_number BIGINT;
 
--- 2. Migrar estados existentes
-UPDATE layaways SET status = 'completed' WHERE status = 'paid' OR balance <= 0;
-UPDATE sales SET status = 'completed' 
-WHERE id IN (SELECT sale_id FROM layaways WHERE status = 'completed') 
-AND status = 'pending';
+-- 2. Crear secuencia para los folios de abonos si no existe
+CREATE SEQUENCE IF NOT EXISTS layaway_payment_receipt_seq START 1;
 
--- 3. Actualizar función register_layaway_payment
+-- 3. Actualizar register_layaway_payment para generar y retornar el folio y detalles del pago
 CREATE OR REPLACE FUNCTION register_layaway_payment(
   p_layaway_id UUID,
   p_amount DECIMAL,
@@ -89,7 +85,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 4. Actualizar función process_sale
+-- 4. Actualizar process_sale para asignar folio al depósito inicial
 CREATE OR REPLACE FUNCTION process_sale(
   p_customer_id UUID,
   p_deposit DECIMAL,

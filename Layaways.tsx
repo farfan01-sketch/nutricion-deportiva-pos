@@ -1,293 +1,243 @@
-import { supabase } from '../lib/supabase';
-import { Shift } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Edit2, Trash2, User, Phone, FileText, Filter } from 'lucide-react';
+import { customerService } from '../services/customers';
+import { Customer } from '../types';
+import Modal from '../components/Modal';
 
-export const shiftService = {
-  async getOpenShift(): Promise<Shift | null> {
-    const { data, error } = await supabase
-      .from('shifts')
-      .select('*')
-      .eq('status', 'open')
-      .maybeSingle();
+const Customers: React.FC = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [search, setSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [formData, setFormData] = useState<Partial<Customer>>({
+    name: '',
+    phone: '',
+    type: 'retail',
+    notes: ''
+  });
 
-    if (error) return null;
-    return data;
-  },
+  useEffect(() => {
+    loadCustomers();
+  }, []);
 
-  async openShift(userId: string, openingCash: number, notes?: string): Promise<Shift> {
-    const { data, error } = await supabase
-      .from('shifts')
-      .insert([{
-        user_id: userId,
-        opening_cash: openingCash,
-        status: 'open',
-        opened_at: new Date().toISOString(),
-        notes: notes
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async closeShift(id: string, closingCash: number, totals: any): Promise<Shift> {
-    const { data, error } = await supabase
-      .from('shifts')
-      .update({
-        closing_cash: closingCash,
-        expected_cash: totals.expected_cash,
-        total_sales: totals.total_sales,
-        total_expenses: totals.total_expenses,
-        difference: closingCash - totals.expected_cash,
-        status: 'closed',
-        closed_at: new Date().toISOString(),
-        
-        // Save audit metrics
-        cash_sales: totals.cash_sales,
-        card_sales: totals.card_sales,
-        transfer_sales: totals.transfer_sales,
-        layaway_cash: totals.layaway_cash_payments,
-        layaway_card: totals.layaway_card_payments,
-        layaway_transfer: totals.layaway_transfer_payments,
-        cash_expenses: totals.cash_expenses,
-        cash_returns: totals.cash_returns,
-        card_returns: totals.card_returns,
-        transfer_returns: totals.transfer_returns,
-        real_profit: totals.real_profit,
-        total_cogs: totals.total_cogs
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async getShiftTotals(shiftId: string, openedAt: string, closedAt?: string): Promise<any> {
-    const end = closedAt || new Date().toISOString();
-    
-    // Get sales
-    let salesQuery = supabase
-      .from('sales')
-      .select('total, payment_method, type')
-      .eq('status', 'completed');
-
-    if (shiftId) {
-      salesQuery = salesQuery.eq('shift_id', shiftId);
-    } else {
-      salesQuery = salesQuery.gte('created_at', openedAt).lte('created_at', end);
+  const loadCustomers = async () => {
+    try {
+      const data = await customerService.getAll();
+      setCustomers(data);
+    } catch (err) {
+      console.error(err);
     }
+  };
 
-    const { data: sales, error: salesError } = await salesQuery;
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) || 
+    c.phone.includes(search)
+  );
 
-    if (salesError) throw salesError;
-
-    // Get expenses
-    let expensesQuery = supabase
-      .from('expenses')
-      .select('amount, method');
-
-    if (shiftId) {
-      expensesQuery = expensesQuery.eq('shift_id', shiftId);
-    } else {
-      expensesQuery = expensesQuery.gte('created_at', openedAt).lte('created_at', end);
-    }
-
-    const { data: expenses, error: expensesError } = await expensesQuery;
-    if (expensesError) throw expensesError;
-
-    // Get layaway payments
-    let layawayPaymentsQuery = supabase
-      .from('layaway_payments')
-      .select('amount, payment_method');
-
-    if (shiftId) {
-      layawayPaymentsQuery = layawayPaymentsQuery.eq('shift_id', shiftId);
-    } else {
-      layawayPaymentsQuery = layawayPaymentsQuery.gte('created_at', openedAt).lte('created_at', end);
-    }
-
-    const { data: layawayPayments, error: layawayPaymentsError } = await layawayPaymentsQuery;
-    if (layawayPaymentsError) throw layawayPaymentsError;
-
-    // Get returns
-    let returnsQuery = supabase
-      .from('sale_returns')
-      .select('total_returned, return_method');
-
-    if (shiftId) {
-      returnsQuery = returnsQuery.eq('shift_id', shiftId);
-    } else {
-      returnsQuery = returnsQuery.gte('created_at', openedAt).lte('created_at', end);
-    }
-
-    const { data: returns, error: returnsError } = await returnsQuery;
-    
-    // If there's an error (e.g. return_method column missing), try without it
-    let finalReturns: any[] | null = returns;
-    if (returnsError) {
-      console.warn('Error fetching returns with return_method, trying without it:', returnsError);
-      const { data: fallbackReturns, error: fallbackError } = await supabase
-        .from('sale_returns')
-        .select('total_returned')
-        .eq(shiftId ? 'shift_id' : 'created_at', shiftId || openedAt); // This is a bit simplified but good enough for fallback
-      
-      if (fallbackError) {
-        console.error('Error in fallback returns query:', fallbackError);
-        finalReturns = [];
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingCustomer) {
+        await customerService.update(editingCustomer.id, formData);
       } else {
-        finalReturns = fallbackReturns;
+        await customerService.create(formData);
       }
+      setIsModalOpen(false);
+      loadCustomers();
+    } catch (err) {
+      alert('Error al guardar cliente');
     }
+  };
 
-    const totals = {
-      total_sales: 0,
-      cash_sales: 0,
-      transfer_sales: 0,
-      card_sales: 0,
-      mixed_sales: 0,
-      layaways: 0,
-      layaway_cash_payments: 0,
-      layaway_card_payments: 0,
-      layaway_transfer_payments: 0,
-      total_expenses: 0,
-      cash_expenses: 0,
-      total_returns: 0,
-      cash_returns: 0,
-      card_returns: 0,
-      transfer_returns: 0,
-      expected_cash: 0,
-      total_cogs: 0,
-      real_profit: 0
-    };
+  const openEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setFormData(customer);
+    setIsModalOpen(true);
+  };
 
-    // Get sale items for COGS
-    let saleItemsQuery = supabase
-      .from('sale_items')
-      .select('quantity, cost, sales!inner(status, type, shift_id, created_at)')
-      .eq('sales.status', 'completed')
-      .eq('sales.type', 'sale');
+  const openCreate = () => {
+    setEditingCustomer(null);
+    setFormData({ name: '', phone: '', type: 'retail', notes: '' });
+    setIsModalOpen(true);
+  };
 
-    if (shiftId) {
-      saleItemsQuery = saleItemsQuery.eq('sales.shift_id', shiftId);
-    } else {
-      saleItemsQuery = saleItemsQuery.gte('sales.created_at', openedAt).lte('sales.created_at', end);
+  const handleDelete = async (id: string) => {
+    if (confirm('¿Estás seguro de eliminar este cliente?')) {
+      await customerService.delete(id);
+      loadCustomers();
     }
-    const { data: saleItems } = await saleItemsQuery;
+  };
 
-    // Get return items for COGS recovery
-    let returnItemsQuery = supabase
-      .from('return_items')
-      .select('quantity, cost, sale_returns!inner(shift_id, created_at)');
+  return (
+    <div className="p-8 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Directorio de Clientes</h1>
+          <p className="text-slate-500">Administra la base de datos de tus clientes frecuentes.</p>
+        </div>
+        <button
+          onClick={openCreate}
+          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary-200"
+        >
+          <Plus size={20} />
+          Nuevo Cliente
+        </button>
+      </div>
 
-    if (shiftId) {
-      returnItemsQuery = returnItemsQuery.eq('sale_returns.shift_id', shiftId);
-    } else {
-      returnItemsQuery = returnItemsQuery.gte('sale_returns.created_at', openedAt).lte('sale_returns.created_at', end);
-    }
-    const { data: returnItems } = await returnItemsQuery;
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-4 border-b border-slate-50 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o teléfono..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+            />
+          </div>
+          <button className="px-4 py-2.5 bg-slate-50 text-slate-600 rounded-xl border border-slate-200 flex items-center gap-2 hover:bg-slate-100 transition-all">
+            <Filter size={18} />
+            Filtros
+          </button>
+        </div>
 
-    let totalCogs = 0;
-    saleItems?.forEach(item => {
-      const cost = Number(item.cost) || 0;
-      const quantity = Number(item.quantity) || 0;
-      totalCogs += (cost * quantity);
-    });
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                <th className="px-6 py-4">Cliente</th>
+                <th className="px-6 py-4">Teléfono</th>
+                <th className="px-6 py-4">Tipo</th>
+                <th className="px-6 py-4">Notas</th>
+                <th className="px-6 py-4">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredCustomers.map((customer) => (
+                <tr key={customer.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-500 transition-colors">
+                        <User size={20} />
+                      </div>
+                      <p className="text-sm font-bold text-slate-900">{customer.name}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                    {customer.phone || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${
+                      customer.type === 'wholesale' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                    }`}>
+                      {customer.type === 'wholesale' ? 'Mayoreo' : 'Menudeo'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">
+                    {customer.notes || '-'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => openEdit(customer)}
+                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(customer.id)}
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    let recoveredCogs = 0;
-    returnItems?.forEach(item => {
-      const cost = Number(item.cost) || 0;
-      const quantity = Number(item.quantity) || 0;
-      recoveredCogs += (cost * quantity);
-    });
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingCustomer ? 'Editar Cliente' : 'Nuevo Cliente'}
+      >
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Nombre Completo</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+          </div>
 
-    totals.total_cogs = totalCogs - recoveredCogs;
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Teléfono</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Tipo de Cliente</label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
+              >
+                <option value="retail">Menudeo</option>
+                <option value="wholesale">Mayoreo</option>
+              </select>
+            </div>
+          </div>
 
-    sales?.forEach(sale => {
-      const total = Number(sale.total) || 0;
-      // Solo sumamos ventas normales, los apartados se cuentan por sus abonos
-      if (sale.type === 'sale') {
-        totals.total_sales += total;
-        switch (sale.payment_method) {
-          case 'cash': totals.cash_sales += total; break;
-          case 'transfer': totals.transfer_sales += total; break;
-          case 'card': totals.card_sales += total; break;
-          case 'mixed': totals.mixed_sales += total; break;
-        }
-      }
-      
-      if (sale.type === 'layaway') {
-        totals.layaways += total;
-      }
-    });
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Notas Adicionales</label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 text-slate-400" size={18} />
+              <textarea
+                rows={3}
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+          </div>
 
-    layawayPayments?.forEach(payment => {
-      const amount = Number(payment.amount) || 0;
-      totals.total_sales += amount;
-      switch (payment.payment_method) {
-        case 'cash': 
-          totals.cash_sales += amount; 
-          totals.layaway_cash_payments += amount;
-          break;
-        case 'transfer': 
-          totals.transfer_sales += amount; 
-          totals.layaway_transfer_payments += amount;
-          break;
-        case 'card': 
-          totals.card_sales += amount; 
-          totals.layaway_card_payments += amount;
-          break;
-      }
-    });
-
-    expenses?.forEach(exp => {
-      const amount = Number(exp.amount) || 0;
-      totals.total_expenses += amount;
-      // Por defecto, si no tiene método o es 'cash', se resta del efectivo
-      if (exp.method === 'cash' || !exp.method) {
-        totals.cash_expenses += amount;
-      }
-    });
-
-    finalReturns?.forEach((ret: any) => {
-      const totalReturned = Number(ret.total_returned) || 0;
-      totals.total_returns += totalReturned;
-      // Si no hay return_method (fallback), asumimos cash por compatibilidad
-      if (!ret.return_method || ret.return_method === 'cash') {
-        totals.cash_returns += totalReturned;
-      } else if (ret.return_method === 'card') {
-        totals.card_returns += totalReturned;
-      } else if (ret.return_method === 'transfer') {
-        totals.transfer_returns += totalReturned;
-      }
-    });
-
-    // Final validation to avoid NaN
-    totals.total_sales = Number(totals.total_sales) || 0;
-    totals.total_returns = Number(totals.total_returns) || 0;
-    totals.total_cogs = Number(totals.total_cogs) || 0;
-    totals.total_expenses = Number(totals.total_expenses) || 0;
-
-    totals.real_profit = (totals.total_sales - totals.total_returns) - totals.total_cogs - totals.total_expenses;
-    
-    // Ensure expected_cash is also valid
-    totals.expected_cash = (Number(totals.cash_sales) || 0) - (Number(totals.cash_expenses) || 0) - (Number(totals.cash_returns) || 0);
-
-    return totals;
-  },
-
-  async getHistory(): Promise<Shift[]> {
-    const { data, error } = await supabase
-      .from('shifts')
-      .select('*, user:users(name)')
-      .order('opened_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  },
-
-  async recalcOpenShift(): Promise<void> {
-    await supabase.rpc('recalc_open_shift');
-  }
+          <div className="pt-4 flex gap-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
+            >
+              {editingCustomer ? 'Actualizar Cliente' : 'Crear Cliente'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
 };
+
+export default Customers;
