@@ -16,6 +16,7 @@ import Reports from './pages/Reports';
 import UsersPage from './pages/UsersPage';
 import SalesHistory from './pages/SalesHistory';
 import { shiftService } from './services/shifts';
+import LogoutWithShiftModal from './components/auth/LogoutWithShiftModal';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -23,6 +24,10 @@ const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [requiresShiftOpening, setRequiresShiftOpening] = useState(false);
   const [checkingShift, setCheckingShift] = useState(false);
+  
+  // Logout with shift states
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [openShiftForLogout, setOpenShiftForLogout] = useState<any>(null);
 
   const checkUserShift = async (userData: User) => {
     setCheckingShift(true);
@@ -67,9 +72,31 @@ const App: React.FC = () => {
     setCurrentView('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogoutClick = async () => {
+    if (!user) return;
+    
+    setCheckingShift(true);
+    try {
+      const openShift = await shiftService.getOpenShift(user.id);
+      if (openShift) {
+        setOpenShiftForLogout(openShift);
+        setIsLogoutModalOpen(true);
+      } else {
+        performLogout();
+      }
+    } catch (err) {
+      console.error('Error checking shift before logout:', err);
+      performLogout(); // Salir por seguridad si falla la verificación
+    } finally {
+      setCheckingShift(false);
+    }
+  };
+
+  const performLogout = () => {
     setUser(null);
     setRequiresShiftOpening(false);
+    setIsLogoutModalOpen(false);
+    setOpenShiftForLogout(null);
     localStorage.removeItem('pos_user');
     setCurrentView('dashboard');
   };
@@ -95,7 +122,7 @@ const App: React.FC = () => {
 
   // Interceptamos con la pantalla de apertura si es necesario
   if (requiresShiftOpening) {
-    return <ShiftOpening user={user} onOpen={handleShiftOpened} onLogout={handleLogout} />;
+    return <ShiftOpening user={user} onOpen={handleShiftOpened} onLogout={handleLogoutClick} />;
   }
 
   const renderView = () => {
@@ -122,13 +149,22 @@ const App: React.FC = () => {
         user={user} 
         currentView={currentView} 
         onViewChange={setCurrentView} 
-        onLogout={handleLogout} 
+        onLogout={handleLogoutClick} 
       />
       <main className="flex-1 p-4 md:p-8 overflow-y-auto max-h-screen">
         <div className="max-w-7xl mx-auto">
           {renderView()}
         </div>
       </main>
+
+      {user && openShiftForLogout && (
+        <LogoutWithShiftModal
+          isOpen={isLogoutModalOpen}
+          onClose={() => setIsLogoutModalOpen(false)}
+          openShift={openShiftForLogout}
+          onConfirmLogout={performLogout}
+        />
+      )}
     </div>
   );
 };
