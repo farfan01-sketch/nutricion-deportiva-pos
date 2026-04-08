@@ -1,31 +1,46 @@
-import js from '@eslint/js';
-import globals from 'globals';
-import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
-import tseslint from 'typescript-eslint';
+import { supabase } from '../lib/supabase';
+import { UserPermission, PermissionModule } from '../types';
 
-export default tseslint.config(
-  { ignores: ['dist'] },
-  {
-    extends: [...tseslint.configs.recommended],
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-      parser: tseslint.parser,
-    },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-    },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off'
-    },
+export const permissionsService = {
+  async getPermissionsByUserId(userId: string): Promise<UserPermission[]> {
+    const { data, error } = await supabase
+      .from('users_permissions')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data || [];
   },
-);
+
+  async updatePermissions(userId: string, permissions: { module: PermissionModule; permission: string; enabled: boolean }[]) {
+    // Primero eliminamos los permisos actuales para este usuario
+    // O mejor, usamos upsert si tenemos una clave única
+    
+    const { error } = await supabase
+      .from('users_permissions')
+      .upsert(
+        permissions.map(p => ({
+          user_id: userId,
+          module: p.module,
+          permission: p.permission,
+          enabled: p.enabled
+        })),
+        { onConflict: 'user_id,module,permission' }
+      );
+
+    if (error) throw error;
+  },
+
+  async togglePermission(userId: string, module: PermissionModule, permission: string, enabled: boolean) {
+    const { error } = await supabase
+      .from('users_permissions')
+      .upsert({
+        user_id: userId,
+        module,
+        permission,
+        enabled
+      }, { onConflict: 'user_id,module,permission' });
+
+    if (error) throw error;
+  }
+};
