@@ -9,24 +9,30 @@ import {
   Clock, 
   Phone, 
   MapPin, 
-  User, 
+  User as UserIcon, 
   FileText,
   ShoppingCart,
   Receipt,
   AlertCircle
 } from 'lucide-react';
-import { CatalogOrder } from '../types';
+import { CatalogOrder, User } from '../types';
 import { catalogService } from '../services/catalog';
 import { formatCurrency, formatDate } from '../utils/format';
 import Modal from '../components/Modal';
+import ProcessWebOrderToSaleModal from '../components/orders/ProcessWebOrderToSaleModal';
 
-const CatalogOrders: React.FC = () => {
+interface CatalogOrdersProps {
+  user: User;
+}
+
+const CatalogOrders: React.FC<CatalogOrdersProps> = ({ user }) => {
   const [orders, setOrders] = useState<CatalogOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<CatalogOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -213,7 +219,7 @@ const CatalogOrders: React.FC = () => {
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Información del Cliente</h4>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-slate-600">
-                    <User size={18} className="text-slate-400" />
+                    <UserIcon size={18} className="text-slate-400" />
                     <span className="text-sm font-medium">{selectedOrder.customer_name}</span>
                   </div>
                   <div className="flex items-center gap-3 text-slate-600">
@@ -305,9 +311,8 @@ const CatalogOrders: React.FC = () => {
                 <>
                   <button
                     onClick={() => {
-                      // Aquí podrías redirigir al POS con los datos del pedido
-                      // Por ahora simulamos la conversión
-                      handleUpdateStatus(selectedOrder.id, 'completed');
+                      setIsDetailsOpen(false);
+                      setIsProcessModalOpen(true);
                     }}
                     disabled={processing}
                     className="flex-1 min-w-[150px] px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 disabled:opacity-50"
@@ -337,6 +342,16 @@ const CatalogOrders: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {selectedOrder && (
+        <ProcessWebOrderToSaleModal
+          isOpen={isProcessModalOpen}
+          onClose={() => setIsProcessModalOpen(false)}
+          order={selectedOrder}
+          user={user}
+          onSuccess={loadOrders}
+        />
+      )}
     </div>
   );
 };

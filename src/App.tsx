@@ -161,7 +161,7 @@ const App: React.FC = () => {
           <UsersPage />
         </AdminGuard>
       );
-      case 'catalog-orders': return <CatalogOrders />;
+      case 'catalog-orders': return <CatalogOrders user={user!} />;
       default: return <Dashboard />;
     }
   };

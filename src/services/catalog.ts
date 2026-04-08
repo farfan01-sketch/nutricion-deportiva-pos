@@ -61,10 +61,13 @@ export const catalogService = {
     return data || [];
   },
 
-  async updateOrderStatus(id: string, status: CatalogOrder['status']): Promise<void> {
+  async updateOrderStatus(id: string, status: CatalogOrder['status'], saleId?: string): Promise<void> {
     const { error } = await supabase
       .from('catalog_orders')
-      .update({ status })
+      .update({ 
+        status,
+        ...(saleId && { sale_id: saleId })
+      })
       .eq('id', id);
 
     if (error) throw error;

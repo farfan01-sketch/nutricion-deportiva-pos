@@ -270,6 +270,7 @@ export interface CatalogOrder {
   notes?: string;
   total: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  sale_id?: string;
   created_at: string;
   // Join
   items?: CatalogOrderItem[];
