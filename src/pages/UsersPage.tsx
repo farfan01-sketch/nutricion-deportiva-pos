@@ -48,16 +48,33 @@ const UsersPage: React.FC = () => {
     e.preventDefault();
     try {
       if (editingUser) {
-        await authService.updateUser(editingUser.id, formData);
+        // 1. Actualizar perfil (nombre, usuario, rol)
+        await authService.updateUser(editingUser.id, {
+          name: formData.name,
+          username: formData.username,
+          role: formData.role
+        });
+
+        // 2. Actualizar contraseña solo si se ingresó una nueva
+        if (formData.password && formData.password.trim() !== '') {
+          await authService.updatePassword(editingUser.id, formData.password);
+          alert('Usuario y contraseña actualizados correctamente');
+        } else {
+          alert('Perfil actualizado correctamente');
+        }
       } else {
+        // Crear nuevo usuario
         await authService.createUser(formData as any);
+        alert('Usuario creado correctamente');
       }
+      
       setIsModalOpen(false);
       setEditingUser(null);
       setFormData({ username: '', password: '', role: 'staff', name: '' });
       loadUsers();
-    } catch (err) {
-      alert('Error al guardar usuario');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error al guardar usuario');
     }
   };
 
@@ -66,7 +83,8 @@ const UsersPage: React.FC = () => {
     setFormData({
       username: user.username,
       role: user.role,
-      name: user.name
+      name: user.name,
+      password: '' // Siempre inicializar como string vacío
     });
     setIsModalOpen(true);
   };
