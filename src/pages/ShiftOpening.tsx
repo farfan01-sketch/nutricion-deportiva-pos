@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Unlock, DollarSign, AlertCircle, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Unlock, DollarSign, AlertCircle, LogOut, ArrowRight } from 'lucide-react';
 import { shiftService } from '../services/shifts';
-import { User, CashRegister } from '../types';
+import { User, CashRegister, Shift } from '../types';
 
 interface ShiftOpeningProps {
   user: User;
@@ -14,7 +14,28 @@ const ShiftOpening: React.FC<ShiftOpeningProps> = ({ user, register, onOpen, onL
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
+  const [existingShift, setExistingShift] = useState<Shift | null>(null);
+
+  const checkExistingShift = useCallback(async () => {
+    setChecking(true);
+    try {
+      // Verificamos si hay CUALQUIER turno abierto en esta caja (no solo del usuario actual)
+      const openShift = await shiftService.getOpenShift(undefined, register.id);
+      if (openShift) {
+        setExistingShift(openShift);
+      }
+    } catch (err) {
+      console.error('Error checking existing shift:', err);
+    } finally {
+      setChecking(false);
+    }
+  }, [register.id]);
+
+  useEffect(() => {
+    checkExistingShift();
+  }, [checkExistingShift]);
 
   const handleOpenShift = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +50,74 @@ const ShiftOpening: React.FC<ShiftOpeningProps> = ({ user, register, onOpen, onL
       await shiftService.openShift(user.id, register.id, cashAmount, notes);
       onOpen();
     } catch (err: any) {
-      setError(err.message || 'Error al abrir turno');
+      // Capturamos específicamente el error de duplicado si la validación previa falló por concurrencia
+      if (err.message?.includes('unique constraint') || err.message?.includes('Ya existe')) {
+        setError('Ya existe un turno abierto. Debes cerrarlo antes de abrir uno nuevo.');
+        checkExistingShift(); // Recargamos para mostrar la UI de conflicto
+      } else {
+        setError(err.message || 'Error al abrir turno');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <p className="text-emerald-500 font-medium">Verificando estado de caja...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (existingShift) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="p-8 bg-amber-500 text-white text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-4">
+                <AlertCircle size={32} />
+              </div>
+              <h1 className="text-2xl font-bold">Turno ya Abierto</h1>
+              <p className="text-amber-100 mt-1">
+                Se detectó un turno activo en <b>{register.name}</b>.
+              </p>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <p className="text-sm text-amber-900 leading-relaxed">
+                  No puedes abrir un nuevo turno porque ya existe uno abierto. Debes cerrarlo primero o continuar con el actual si tienes permisos.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={onOpen}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200"
+                >
+                  <ArrowRight size={20} />
+                  Ir al Punto de Venta
+                </button>
+
+                <button
+                  onClick={onLogout}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <LogOut size={18} />
+                  Cerrar Sesión / Cambiar Caja
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">

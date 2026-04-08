@@ -23,6 +23,12 @@ export const shiftService = {
   },
 
   async openShift(userId: string, registerId: string, openingCash: number, notes?: string): Promise<Shift> {
+    // Primero verificamos si ya hay uno abierto para evitar el error de constraint
+    const existing = await this.getOpenShift(undefined, registerId);
+    if (existing) {
+      throw new Error('Ya existe un turno abierto en esta caja. Debes cerrarlo antes de abrir uno nuevo.');
+    }
+
     const { data, error } = await supabase
       .from('shifts')
       .insert([{
@@ -34,9 +40,16 @@ export const shiftService = {
         notes: notes
       }])
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('Ya existe un turno abierto. Debes cerrarlo antes de abrir uno nuevo.');
+      }
+      throw error;
+    }
+    
+    if (!data) throw new Error('No se pudo crear el turno');
     return data;
   },
 
