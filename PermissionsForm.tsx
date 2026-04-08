@@ -1,248 +1,250 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, 
-  Search, 
-  Truck, 
-  Edit2, 
-  Trash2,
-  FileText
+  BarChart3, 
+  TrendingUp, 
+  TrendingDown, 
+  PieChart, 
+  Download,
+  DollarSign,
+  RotateCcw,
+  Receipt
 } from 'lucide-react';
-import { supplierService } from '../services/suppliers';
-import { Supplier } from '../types';
-import Modal from '../components/Modal';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Cell,
+  PieChart as RePieChart,
+  Pie
+} from 'recharts';
+import { reportService } from '../services/reports';
+import { formatCurrency } from '../utils/format';
 
-const Suppliers: React.FC = () => {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [search, setSearch] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [formData, setFormData] = useState<Partial<Supplier>>({
-    name: '',
-    contact: '',
-    conditions: '',
-    notes: ''
-  });
+const Reports: React.FC = () => {
+  const [stats, setStats] = useState<any>(null);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [profitData, setProfitData] = useState<any[]>([]);
 
   useEffect(() => {
-    loadSuppliers();
+    loadData();
   }, []);
 
-  const loadSuppliers = async () => {
+  const loadData = async () => {
     try {
-      const data = await supplierService.getAll();
-      setSuppliers(data);
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+      const [s, tp, pd] = await Promise.all([
+        reportService.getDashboardStats(),
+        reportService.getTopProducts(),
+        reportService.getSalesProfit(thirtyDaysAgo.toISOString(), now.toISOString())
+      ]);
+      setStats(s);
+      setTopProducts(tp);
+      setProfitData(pd);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingSupplier) {
-        await supplierService.update(editingSupplier.id, formData);
-      } else {
-        await supplierService.create(formData);
-      }
-      setIsModalOpen(false);
-      setEditingSupplier(null);
-      setFormData({ name: '', contact: '', conditions: '', notes: '' });
-      loadSuppliers();
-    } catch (err) {
-      alert('Error al guardar proveedor');
-    }
-  };
-
-  const handleEdit = (supplier: Supplier) => {
-    setEditingSupplier(supplier);
-    setFormData({
-      name: supplier.name,
-      contact: supplier.contact,
-      conditions: supplier.conditions,
-      notes: supplier.notes
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este proveedor?')) {
-      await supplierService.delete(id);
-      loadSuppliers();
-    }
-  };
-
-  const filteredSuppliers = suppliers.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.contact?.toLowerCase().includes(search.toLowerCase())
-  );
+  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Proveedores</h1>
-          <p className="text-slate-500">Gestiona tus contactos de suministro y compras.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Reportes y Estadísticas</h1>
+          <p className="text-slate-500">Análisis detallado del rendimiento de tu negocio.</p>
         </div>
-        <button
-          onClick={() => {
-            setEditingSupplier(null);
-            setFormData({ name: '', contact: '', conditions: '', notes: '' });
-            setIsModalOpen(true);
-          }}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary-200"
-        >
-          <Plus size={20} />
-          Nuevo Proveedor
+        <button className="bg-white text-slate-700 border border-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-50 transition-all">
+          <Download size={18} />
+          Exportar PDF
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-50">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o contacto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-            />
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+              <TrendingUp size={20} />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12%</span>
           </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Brutas Hoy</p>
+          <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.sales_gross_today || 0)}</h3>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                <th className="px-6 py-4">Proveedor</th>
-                <th className="px-6 py-4">Contacto</th>
-                <th className="px-6 py-4">Condiciones</th>
-                <th className="px-6 py-4">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredSuppliers.map((supplier) => (
-                <tr key={supplier.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center">
-                        <Truck size={20} />
-                      </div>
-                      <span className="font-bold text-slate-900">{supplier.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{supplier.contact || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{supplier.conditions || '-'}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(supplier)}
-                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(supplier.id)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredSuppliers.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-12 text-center text-slate-400 text-sm">
-                    No se encontraron proveedores.
-                  </td>
-                </tr>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+              <RotateCcw size={20} />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Devoluciones Hoy</p>
+          <h3 className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(stats?.returns_today || 0)}</h3>
+          {(stats?.returns_cash_today > 0 || stats?.returns_card_today > 0 || stats?.returns_transfer_today > 0) && (
+            <div className="mt-2 pt-2 border-t border-slate-50 space-y-1">
+              {stats?.returns_cash_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Efectivo:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.returns_cash_today)}</span>
+                </div>
               )}
-            </tbody>
-          </table>
+              {stats?.returns_card_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Tarjeta:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.returns_card_today)}</span>
+                </div>
+              )}
+              {stats?.returns_transfer_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Transf:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.returns_transfer_today)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+              <Receipt size={20} />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Abonos Apartados Hoy</p>
+          <h3 className="text-xl font-bold text-blue-600 mt-1">{formatCurrency(stats?.layaway_payments_today || 0)}</h3>
+          {(stats?.layaway_cash_today > 0 || stats?.layaway_card_today > 0 || stats?.layaway_transfer_today > 0) && (
+            <div className="mt-2 pt-2 border-t border-slate-50 space-y-1">
+              {stats?.layaway_cash_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Efectivo:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_cash_today)}</span>
+                </div>
+              )}
+              {stats?.layaway_card_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Tarjeta:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_card_today)}</span>
+                </div>
+              )}
+              {stats?.layaway_transfer_today > 0 && (
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-slate-500">Transf:</span>
+                  <span className="font-bold text-slate-700">{formatCurrency(stats.layaway_transfer_today)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
+              <DollarSign size={20} />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ventas Netas Hoy</p>
+          <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency(stats?.sales_net_today || 0)}</h3>
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
+              <TrendingDown size={20} />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gastos Hoy</p>
+          <h3 className="text-xl font-bold text-slate-900 mt-1">{formatCurrency(stats?.expenses_today || 0)}</h3>
         </div>
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingSupplier ? 'Editar Proveedor' : 'Nuevo Proveedor'}
-      >
-        <form onSubmit={handleSave} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Nombre del Proveedor</label>
-            <div className="relative">
-              <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                placeholder="Ej: Distribuidora Central"
-              />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Sales Performance Chart */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <BarChart3 size={20} className="text-primary-500" />
+              Rendimiento de Ventas
+            </h3>
+            <select className="text-xs font-bold text-slate-500 bg-slate-50 border-none rounded-lg focus:ring-0">
+              <option>Últimos 7 días</option>
+              <option>Este mes</option>
+            </select>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Persona de Contacto</label>
-              <input
-                type="text"
-                value={formData.contact}
-                onChange={(e) => setFormData({...formData, contact: e.target.value})}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                placeholder="Nombre del contacto"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Condiciones</label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                  type="text"
-                  value={formData.conditions}
-                  onChange={(e) => setFormData({...formData, conditions: e.target.value})}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="Ej: Crédito 30 días"
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={(profitData || []).slice(0, 7)}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="created_at" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fontSize: 10, fill: '#94a3b8'}}
+                  tickFormatter={(val) => new Date(val).toLocaleDateString('es-MX', { weekday: 'short' })}
                 />
-              </div>
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fontSize: 10, fill: '#94a3b8'}}
+                  tickFormatter={(val) => `$${val}`}
+                />
+                <Tooltip 
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                  formatter={(val: number) => [formatCurrency(val), 'Venta']}
+                />
+                <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Products Chart */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <PieChart size={20} className="text-emerald-500" />
+              Productos Más Vendidos
+            </h3>
+          </div>
+          <div className="h-[300px] flex items-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <RePieChart>
+                <Pie
+                  data={topProducts}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="total_sold"
+                  nameKey="name"
+                >
+                  {topProducts.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                />
+              </RePieChart>
+            </ResponsiveContainer>
+            <div className="w-1/2 space-y-3">
+              {(topProducts || []).slice(0, 5).map((p, i) => (
+                <div key={p.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[i % COLORS.length]}} />
+                    <span className="text-xs font-medium text-slate-600 truncate max-w-[120px]">{p.name}</span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-900">{p.total_sold} ud.</span>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Notas</label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 text-slate-400" size={18} />
-              <textarea
-                rows={3}
-                value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                placeholder="Información adicional..."
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 flex gap-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
-            >
-              {editingSupplier ? 'Actualizar' : 'Guardar Proveedor'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Suppliers;
+export default Reports;

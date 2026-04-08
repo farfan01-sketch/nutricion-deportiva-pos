@@ -1,218 +1,201 @@
--- 1. Actualizar restricción de estado en la tabla layaways
-ALTER TABLE layaways DROP CONSTRAINT IF EXISTS layaways_status_check;
-ALTER TABLE layaways ADD CONSTRAINT layaways_status_check CHECK (status IN ('pending', 'completed', 'cancelled', 'paid'));
+import React, { useState, useEffect, useCallback } from 'react';
+import { LogOut, Lock, AlertCircle, DollarSign, ArrowRight } from 'lucide-react';
+import { Shift } from '../../types';
+import { shiftService } from '../../services/shifts';
+import { formatCurrency } from '../../utils/format';
+import Modal from '../Modal';
 
--- 2. Migrar estados existentes
-UPDATE layaways SET status = 'completed' WHERE status = 'paid' OR balance <= 0;
-UPDATE sales SET status = 'completed' 
-WHERE id IN (SELECT sale_id FROM layaways WHERE status = 'completed') 
-AND status = 'pending';
+interface LogoutWithShiftModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  openShift: Shift;
+  onConfirmLogout: () => void;
+}
 
--- 3. Actualizar función register_layaway_payment
-CREATE OR REPLACE FUNCTION register_layaway_payment(
-  p_layaway_id UUID,
-  p_amount DECIMAL,
-  p_payment_method TEXT,
-  p_user_id UUID,
-  p_shift_id UUID,
-  p_notes TEXT
-) RETURNS JSONB AS $$
-DECLARE
-  v_sale_id UUID;
-  v_new_balance DECIMAL;
-  v_receipt_number BIGINT;
-  v_payment_id UUID;
-  v_result JSONB;
-  v_user_name TEXT;
-BEGIN
-  -- Obtener siguiente número de recibo
-  v_receipt_number := nextval('layaway_payment_receipt_seq');
+const LogoutWithShiftModal: React.FC<LogoutWithShiftModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  openShift, 
+  onConfirmLogout 
+}) => {
+  const [step, setStep] = useState<'options' | 'closing'>('options');
+  const [loading, setLoading] = useState(false);
+  const [shiftTotals, setShiftTotals] = useState<any>(null);
+  const [cashAmount, setCashAmount] = useState<number>(0);
+  const [error, setError] = useState('');
 
-  -- Obtener nombre del usuario
-  SELECT name INTO v_user_name FROM users WHERE id = p_user_id;
+  const loadTotals = useCallback(async () => {
+    try {
+      const totals = await shiftService.getShiftTotals(openShift.id, openShift.opened_at);
+      const initialCash = openShift.opening_cash || 0;
+      totals.expected_cash = initialCash + totals.cash_sales - totals.cash_expenses - (totals.cash_returns || 0);
+      setShiftTotals(totals);
+    } catch (err) {
+      console.error('Error loading totals:', err);
+    }
+  }, [openShift.id, openShift.opened_at, openShift.opening_cash]);
 
-  -- 1. Insertar el pago
-  INSERT INTO layaway_payments (
-    layaway_id,
-    amount,
-    payment_method,
-    user_id,
-    shift_id,
-    notes,
-    receipt_number
-  ) VALUES (
-    p_layaway_id,
-    p_amount,
-    p_payment_method,
-    p_user_id,
-    p_shift_id,
-    p_notes,
-    v_receipt_number
-  ) RETURNING id INTO v_payment_id;
+  useEffect(() => {
+    if (isOpen && openShift) {
+      loadTotals();
+    } else {
+      setStep('options');
+      setError('');
+      setCashAmount(0);
+    }
+  }, [isOpen, openShift, loadTotals]);
 
-  -- 2. Actualizar el apartado
-  UPDATE layaways SET
-    deposit = deposit + p_amount,
-    balance = balance - p_amount
-  WHERE id = p_layaway_id
-  RETURNING sale_id, balance INTO v_sale_id, v_new_balance;
+  const handleCloseAndLogout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shiftTotals) return;
+    
+    setLoading(true);
+    setError('');
+    try {
+      await shiftService.closeShift(openShift.id, cashAmount, shiftTotals);
+      onConfirmLogout();
+    } catch (err: any) {
+      setError('Error al cerrar el turno. Por favor intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  -- 3. Si el saldo es 0 o menos, marcar como COMPLETADO
-  IF v_new_balance <= 0 THEN
-    UPDATE layaways SET status = 'completed', balance = 0 WHERE id = p_layaway_id;
-    UPDATE sales SET status = 'completed' WHERE id = v_sale_id;
-  END IF;
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Turno Abierto Detectado"
+      size={step === 'closing' ? 'md' : 'sm'}
+    >
+      {step === 'options' ? (
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-600">
+              <AlertCircle size={32} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Tienes un turno abierto</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                ¿Qué deseas hacer antes de cerrar sesión?
+              </p>
+            </div>
+          </div>
 
-  -- 4. Recalcular el turno si existe
-  IF p_shift_id IS NOT NULL THEN
-    PERFORM recalc_open_shift();
-  END IF;
+          <div className="space-y-3">
+            <button
+              onClick={() => setStep('closing')}
+              className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 group-hover:bg-rose-100">
+                  <Lock size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-slate-900">Cerrar turno y salir</p>
+                  <p className="text-xs text-slate-500">Realiza el corte de caja ahora</p>
+                </div>
+              </div>
+              <ArrowRight size={18} className="text-slate-300 group-hover:text-primary-500" />
+            </button>
 
-  -- 5. Construir resultado detallado para el recibo
-  SELECT jsonb_build_object(
-    'id', lp.id,
-    'receipt_number', lp.receipt_number,
-    'amount', lp.amount,
-    'payment_method', lp.payment_method,
-    'created_at', lp.created_at,
-    'notes', lp.notes,
-    'layaway_id', lp.layaway_id,
-    'new_balance', v_new_balance,
-    'previous_balance', v_new_balance + p_amount,
-    'sale_id', v_sale_id,
-    'user_name', v_user_name
-  ) INTO v_result
-  FROM layaway_payments lp
-  WHERE lp.id = v_payment_id;
+            <button
+              onClick={onConfirmLogout}
+              className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 group-hover:bg-amber-100">
+                  <LogOut size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-slate-900">Salir y dejar turno abierto</p>
+                  <p className="text-xs text-slate-500">Podrás continuar después</p>
+                </div>
+              </div>
+              <ArrowRight size={18} className="text-slate-300 group-hover:text-amber-500" />
+            </button>
+          </div>
 
-  RETURN v_result;
-END;
-$$ LANGUAGE plpgsql;
+          <button
+            onClick={onClose}
+            className="w-full py-3 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleCloseAndLogout} className="space-y-6">
+          <div className="bg-primary-50 p-4 rounded-xl flex items-start gap-3">
+            <AlertCircle className="text-primary-600 shrink-0" size={20} />
+            <p className="text-xs text-primary-800 leading-relaxed">
+              Ingresa el efectivo real contado en caja para finalizar el turno y cerrar sesión.
+            </p>
+          </div>
 
--- 4. Actualizar función process_sale
-CREATE OR REPLACE FUNCTION process_sale(
-  p_customer_id UUID,
-  p_deposit DECIMAL,
-  p_discount DECIMAL,
-  p_items JSONB,
-  p_payment_method TEXT,
-  p_subtotal DECIMAL,
-  p_total DECIMAL,
-  p_type TEXT,
-  p_user_id UUID,
-  p_shift_id UUID
-) RETURNS UUID AS $$
-DECLARE
-  v_sale_id UUID;
-  v_layaway_id UUID;
-  v_item RECORD;
-  v_ticket_number BIGINT;
-  v_receipt_number BIGINT;
-  v_status TEXT;
-BEGIN
-  -- Obtener siguiente número de ticket
-  SELECT COALESCE(MAX(ticket_number), 0) + 1 INTO v_ticket_number FROM sales;
+          {error && (
+            <div className="p-4 bg-rose-50 text-rose-600 rounded-xl text-sm font-medium border border-rose-100">
+              {error}
+            </div>
+          )}
 
-  -- Determinar estado inicial
-  IF p_type = 'layaway' THEN
-    IF (p_total - p_deposit) <= 0 THEN
-      v_status := 'completed';
-    ELSE
-      v_status := 'pending';
-    END IF;
-  ELSE
-    v_status := 'completed';
-  END IF;
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Efectivo Real en Caja</label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="number"
+                step="0.01"
+                required
+                autoFocus
+                value={cashAmount}
+                onChange={(e) => setCashAmount(Number(e.target.value))}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none text-lg font-bold"
+              />
+            </div>
+          </div>
 
-  -- 1. Insertar la venta
-  INSERT INTO sales (
-    customer_id,
-    subtotal,
-    total,
-    payment_method,
-    type,
-    status,
-    user_id,
-    shift_id,
-    ticket_number
-  ) VALUES (
-    p_customer_id,
-    p_subtotal,
-    p_total,
-    p_payment_method,
-    p_type,
-    v_status,
-    p_user_id,
-    p_shift_id,
-    v_ticket_number
-  ) RETURNING id INTO v_sale_id;
+          {shiftTotals && (
+            <div className="p-4 bg-slate-50 rounded-xl space-y-2">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Efectivo Esperado:</span>
+                <span className="font-bold">{formatCurrency(shiftTotals.expected_cash)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Diferencia:</span>
+                <span className={`font-bold ${cashAmount - shiftTotals.expected_cash >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {formatCurrency(cashAmount - shiftTotals.expected_cash)}
+                </span>
+              </div>
+            </div>
+          )}
 
-  -- 2. Insertar los items de la venta y actualizar stock
-  FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id UUID, quantity INTEGER, price DECIMAL, cost DECIMAL)
-  LOOP
-    INSERT INTO sale_items (
-      sale_id,
-      product_id,
-      quantity,
-      price,
-      cost
-    ) VALUES (
-      v_sale_id,
-      v_item.product_id,
-      v_item.quantity,
-      v_item.price,
-      v_item.cost
-    );
+          <div className="flex gap-4 pt-2">
+            <button
+              type="button"
+              onClick={() => setStep('options')}
+              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl"
+            >
+              Atrás
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !shiftTotals}
+              className="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Lock size={18} />
+                  Cerrar y Salir
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+};
 
-    -- Actualizar stock del producto
-    UPDATE products 
-    SET stock = stock - v_item.quantity 
-    WHERE id = v_item.product_id;
-  END LOOP;
-
-  -- 3. SI ES UN APARTADO, insertar en la tabla layaways y registrar el primer pago
-  IF p_type = 'layaway' THEN
-    INSERT INTO layaways (
-      sale_id,
-      deposit,
-      balance,
-      status
-    ) VALUES (
-      v_sale_id,
-      p_deposit,
-      p_total - p_deposit,
-      v_status
-    ) RETURNING id INTO v_layaway_id;
-
-    -- Registrar el depósito inicial como el primer pago en layaway_payments
-    IF p_deposit > 0 THEN
-      v_receipt_number := nextval('layaway_payment_receipt_seq');
-      
-      INSERT INTO layaway_payments (
-        layaway_id,
-        amount,
-        payment_method,
-        user_id,
-        shift_id,
-        notes,
-        receipt_number
-      ) VALUES (
-        v_layaway_id,
-        p_deposit,
-        p_payment_method,
-        p_user_id,
-        p_shift_id,
-        'Depósito inicial',
-        v_receipt_number
-      );
-    END IF;
-  END IF;
-
-  -- 4. Recalcular el turno si existe
-  IF p_shift_id IS NOT NULL THEN
-    PERFORM recalc_open_shift();
-  END IF;
-
-  RETURN v_sale_id;
-END;
-$$ LANGUAGE plpgsql;
+export default LogoutWithShiftModal;

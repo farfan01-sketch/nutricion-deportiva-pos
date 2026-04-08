@@ -1,10 +1,10 @@
 import { supabase } from '../lib/supabase';
-import { Customer } from '../types';
+import { Product } from '../types';
 
-export const customerService = {
-  async getAll(): Promise<Customer[]> {
+export const productService = {
+  async getAll(): Promise<Product[]> {
     const { data, error } = await supabase
-      .from('customers')
+      .from('products')
       .select('*')
       .order('name', { ascending: true });
 
@@ -12,10 +12,32 @@ export const customerService = {
     return data || [];
   },
 
-  async create(customer: Partial<Customer>): Promise<Customer> {
+  async search(query: string): Promise<Product[]> {
     const { data, error } = await supabase
-      .from('customers')
-      .insert([customer])
+      .from('products')
+      .select('*')
+      .or(`name.ilike.%${query}%,code.ilike.%${query}%,brand.ilike.%${query}%`)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getByCode(code: string): Promise<Product | null> {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('code', code)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async create(product: Partial<Product>): Promise<Product> {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([product])
       .select()
       .single();
 
@@ -23,10 +45,10 @@ export const customerService = {
     return data;
   },
 
-  async update(id: string, customer: Partial<Customer>): Promise<Customer> {
+  async update(id: string, product: Partial<Product>): Promise<Product> {
     const { data, error } = await supabase
-      .from('customers')
-      .update(customer)
+      .from('products')
+      .update(product)
       .eq('id', id)
       .select()
       .single();
@@ -37,10 +59,28 @@ export const customerService = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('customers')
+      .from('products')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
+  },
+
+  async uploadImage(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `products/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('pos-images')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('pos-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   }
 };

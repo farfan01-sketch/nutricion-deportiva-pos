@@ -1,41 +1,61 @@
 import { supabase } from '../lib/supabase';
-import { Expense } from '../types';
+import { User } from '../types';
 
-export const expenseService = {
-  async getAll(): Promise<Expense[]> {
+export const authService = {
+  async login(username: string, password: string): Promise<User> {
     const { data, error } = await supabase
-      .from('expenses')
+      .from('users')
       .select('*')
-      .order('created_at', { ascending: false });
+      .eq('username', username)
+      .eq('password', password)
+      .single();
+
+    if (error || !data) {
+      throw new Error('Credenciales inválidas');
+    }
+
+    return data as User;
+  },
+
+  async getAllUsers(): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('name', { ascending: true });
 
     if (error) throw error;
     return data || [];
   },
 
-  async create(expense: Partial<Expense>): Promise<Expense> {
+  async createUser(user: Partial<User>): Promise<User> {
     const { data, error } = await supabase
-      .from('expenses')
-      .insert([expense])
+      .from('users')
+      .insert([user])
       .select()
       .single();
 
     if (error) throw error;
-    
-    // Refresh open shift
-    await supabase.rpc('recalc_open_shift');
-    
     return data;
   },
 
-  async delete(id: string): Promise<void> {
+  async updateUser(id: string, user: Partial<User>): Promise<User> {
+    const { data, error } = await supabase
+      .from('users')
+      .update(user)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteUser(id: string): Promise<void> {
     const { error } = await supabase
-      .from('expenses')
+      .from('users')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
-    
-    // Refresh open shift
-    await supabase.rpc('recalc_open_shift');
   }
 };
