@@ -54,8 +54,8 @@ export const authService = {
       .maybeSingle();
 
     if (error) {
-      if (error.code === '42501') {
-        throw new Error('No tienes permisos para actualizar este usuario (Error de RLS).');
+      if (error.code === '42501' || error.message?.includes('JSON object') || error.message?.includes('0 rows')) {
+        throw new Error('Error de permisos (RLS): La base de datos rechazó la actualización. Asegúrate de haber ejecutado el script SQL de permisos en el panel de Supabase.');
       }
       throw error;
     }
