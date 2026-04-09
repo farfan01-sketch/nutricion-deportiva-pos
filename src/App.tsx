@@ -16,6 +16,7 @@ import Shifts from './pages/Shifts';
 import Reports from './pages/Reports';
 import UsersPage from './pages/UsersPage';
 import Registers from './pages/Registers';
+import Settings from './pages/Settings';
 import SalesHistory from './pages/SalesHistory';
 import PublicCatalog from './pages/PublicCatalog';
 import CatalogOrders from './pages/CatalogOrders';
@@ -194,6 +195,11 @@ const App: React.FC = () => {
       case 'staff': return (
         <AdminGuard user={user!}>
           <UsersPage />
+        </AdminGuard>
+      );
+      case 'settings': return (
+        <AdminGuard user={user!}>
+          <Settings />
         </AdminGuard>
       );
       case 'catalog-orders': return <CatalogOrders user={user!} register={selectedRegister!} />;

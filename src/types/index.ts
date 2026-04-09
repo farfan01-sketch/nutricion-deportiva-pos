@@ -188,6 +188,14 @@ export interface ReturnItem {
   product?: { name: string };
 }
 
+export interface NotificationEmail {
+  id: string;
+  email: string;
+  name?: string;
+  enabled: boolean;
+  created_at: string;
+}
+
 // Views
 export interface DashboardStats {
   // Resumen del día

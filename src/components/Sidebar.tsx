@@ -13,7 +13,8 @@ import {
   LogOut,
   Clock,
   ShoppingBag,
-  Monitor
+  Monitor,
+  Settings
 } from 'lucide-react';
 import { User, PermissionModule } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
@@ -43,6 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
     { id: 'reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'staff'], module: 'sistema' as PermissionModule, permission: 'ver_reportes' },
     { id: 'registers', label: 'Cajas', icon: Monitor, roles: ['admin'] },
     { id: 'staff', label: 'Personal', icon: UserCircle, roles: ['admin'] },
+    { id: 'settings', label: 'Configuración', icon: Settings, roles: ['admin'] },
   ];
 
   const filteredItems = menuItems.filter(item => {

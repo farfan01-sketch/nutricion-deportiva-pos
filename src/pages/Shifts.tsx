@@ -103,10 +103,16 @@ const Shifts: React.FC<ShiftsProps> = ({ user, register }) => {
     if (!openShift || !shiftTotals) return;
     setLoading(true);
     try {
-      await shiftService.closeShift(openShift.id, cashAmount, shiftTotals);
+      const { emailStatus } = await shiftService.closeShift(openShift.id, cashAmount, shiftTotals);
       setIsModalOpen(false);
       resetForm();
       loadData();
+      
+      if (emailStatus) {
+        alert(emailStatus.success ? 'Turno cerrado y correo enviado correctamente.' : `Turno cerrado correctamente. ${emailStatus.message}`);
+      } else {
+        alert('Turno cerrado correctamente.');
+      }
     } catch (err) {
       alert('Error al cerrar turno');
     } finally {

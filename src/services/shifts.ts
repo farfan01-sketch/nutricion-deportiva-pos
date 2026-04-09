@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Shift } from '../types';
+import { settingsService } from './settings';
 
 export const shiftService = {
   async getOpenShift(userId?: string, registerId?: string): Promise<Shift | null> {
@@ -53,7 +54,7 @@ export const shiftService = {
     return data;
   },
 
-  async closeShift(id: string, closingCash: number, totals: any): Promise<Shift> {
+  async closeShift(id: string, closingCash: number, totals: any): Promise<{ shift: Shift; emailStatus?: { success: boolean; message: string } }> {
     const { data, error } = await supabase
       .from('shifts')
       .update({
@@ -84,7 +85,17 @@ export const shiftService = {
       .single();
 
     if (error) throw error;
-    return data;
+
+    // Intentar enviar correo de notificación
+    let emailStatus;
+    try {
+      emailStatus = await settingsService.sendShiftClosingEmail(id);
+    } catch (err) {
+      console.error('Error triggering email notification:', err);
+      emailStatus = { success: false, message: 'No se pudo enviar el correo de notificación.' };
+    }
+
+    return { shift: data, emailStatus };
   },
 
   async getShiftTotals(shiftId: string, openedAt: string, closedAt?: string): Promise<any> {

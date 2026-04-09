@@ -52,7 +52,10 @@ const LogoutWithShiftModal: React.FC<LogoutWithShiftModalProps> = ({
     setLoading(true);
     setError('');
     try {
-      await shiftService.closeShift(openShift.id, cashAmount, shiftTotals);
+      const { emailStatus } = await shiftService.closeShift(openShift.id, cashAmount, shiftTotals);
+      if (emailStatus && !emailStatus.success) {
+        alert(`Turno cerrado correctamente. ${emailStatus.message}`);
+      }
       onConfirmLogout();
     } catch (err: any) {
       setError('Error al cerrar el turno. Por favor intenta de nuevo.');
