@@ -53,7 +53,7 @@ export const settingsService = {
       // 3. Generar el HTML del reporte
       // 4. Enviar vía Resend/SendGrid
       
-      const { data, error } = await supabase.functions.invoke('send-shift-report', {
+      const { error } = await supabase.functions.invoke('send-shift-report', {
         body: { shiftId }
       });
 
