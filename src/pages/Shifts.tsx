@@ -117,15 +117,20 @@ const Shifts: React.FC<ShiftsProps> = ({ user, register }) => {
             ? JSON.parse(emailStatus.whatsappResult)
             : emailStatus.whatsappResult;
 
+          console.log("WhatsApp parsed:", parsed);
+
           if (
-            parsed?.status === "queued" ||
-            parsed?.status === "sent" ||
-            parsed?.status === "delivered"
+            parsed &&
+            (
+              parsed.status === "queued" ||
+              parsed.status === "sent" ||
+              parsed.status === "delivered"
+            )
           ) {
             whatsappOk = true;
           }
         } catch (e) {
-          console.error("Error parsing whatsappResult", e);
+          console.error("Error parsing whatsappResult:", e);
         }
 
         let message = "";
