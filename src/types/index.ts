@@ -196,6 +196,18 @@ export interface NotificationEmail {
   created_at: string;
 }
 
+export interface NotificationStatus {
+  success: boolean;
+  message: string;
+  emailResult?: {
+    id?: string;
+    error?: string;
+  };
+  whatsappResult?: any;
+  error?: string;
+  detail?: string;
+}
+
 // Views
 export interface DashboardStats {
   // Resumen del día

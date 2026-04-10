@@ -109,7 +109,23 @@ const Shifts: React.FC<ShiftsProps> = ({ user, register }) => {
       loadData();
       
       if (emailStatus) {
-        alert(emailStatus.success ? 'Turno cerrado y correo enviado correctamente.' : `Turno cerrado correctamente. ${emailStatus.message}`);
+        const emailSuccess = !!emailStatus.emailResult?.id;
+        const whatsappStatus = emailStatus.whatsappResult?.status;
+        const whatsappSuccess = ['queued', 'sent', 'delivered'].includes(whatsappStatus);
+
+        let message = '';
+        if (emailSuccess && whatsappSuccess) {
+          message = "Turno cerrado correctamente. Correo enviado y WhatsApp en cola/envío exitoso.";
+        } else if (emailSuccess && !whatsappSuccess) {
+          message = "Turno cerrado correctamente. Correo enviado, pero WhatsApp no pudo enviarse.";
+        } else if (!emailSuccess && whatsappSuccess) {
+          message = "Turno cerrado correctamente. WhatsApp enviado, pero el correo no pudo enviarse.";
+        } else if (!emailSuccess && !whatsappSuccess) {
+          message = "Turno cerrado correctamente, pero no se pudieron enviar las notificaciones.";
+        } else {
+          message = emailStatus.error || emailStatus.detail || emailStatus.message || 'Turno cerrado correctamente.';
+        }
+        alert(message);
       } else {
         alert('Turno cerrado correctamente.');
       }

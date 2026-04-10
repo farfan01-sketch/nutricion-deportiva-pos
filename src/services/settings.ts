@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { NotificationEmail } from '../types';
+import { NotificationEmail, NotificationStatus } from '../types';
 
 export const settingsService = {
   async getNotificationEmails(): Promise<NotificationEmail[]> {
@@ -44,26 +44,38 @@ export const settingsService = {
     if (error) throw error;
   },
 
-  async sendShiftClosingEmail(shiftId: string): Promise<{ success: boolean; message: string }> {
+  async sendShiftClosingEmail(shiftId: string): Promise<NotificationStatus> {
     try {
-      // Aquí llamaríamos a una Edge Function de Supabase
-      // La función se encargaría de:
-      // 1. Obtener los datos del turno (shiftId)
-      // 2. Obtener los correos activos de notification_emails
-      // 3. Generar el HTML del reporte
-      // 4. Enviar vía Resend/SendGrid
-      
-      const { error } = await supabase.functions.invoke('send-shift-report', {
+      const { data, error } = await supabase.functions.invoke('send-shift-report', {
         body: { shiftId }
       });
 
       if (error) throw error;
-      return { success: true, message: 'Correo enviado correctamente' };
+
+      // Parsear whatsappResult si viene como string
+      let whatsappResult = data?.whatsappResult;
+      if (typeof whatsappResult === 'string') {
+        try {
+          whatsappResult = JSON.parse(whatsappResult);
+        } catch (e) {
+          console.warn('Error parsing whatsappResult:', e);
+        }
+      }
+
+      return { 
+        success: data?.success ?? true, 
+        message: data?.message || 'Notificaciones procesadas',
+        emailResult: data?.emailResult,
+        whatsappResult: whatsappResult,
+        error: data?.error,
+        detail: data?.detail
+      };
     } catch (err: any) {
       console.error('Error sending shift email:', err);
       return { 
         success: false, 
-        message: 'El turno se cerró pero no se pudo enviar el correo de notificación.' 
+        message: 'El turno se cerró pero no se pudo enviar el correo de notificación.',
+        error: err.message
       };
     }
   }
