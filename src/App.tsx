@@ -33,8 +33,18 @@ const App: React.FC = () => {
   const [requiresShiftOpening, setRequiresShiftOpening] = useState(false);
   const [checkingShift, setCheckingShift] = useState(false);
   
-  // Simple path-based routing for public catalog
-  const isPublicCatalog = window.location.pathname === '/catalog' || window.location.pathname === '/catalogo';
+  // Path and Hostname based routing
+  const hostname = window.location.hostname;
+  const path = window.location.pathname;
+
+  // Root domains that should default to the store/catalog
+  const STORE_DOMAINS = ['nutriciondeportivaistmo.com', 'www.nutriciondeportivaistmo.com'];
+  
+  // Logic to determine if we should show the public catalog
+  const isPublicCatalog = 
+    path === '/catalog' || 
+    path === '/catalogo' || 
+    (STORE_DOMAINS.includes(hostname) && path === '/');
 
   // Logout with shift states
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
