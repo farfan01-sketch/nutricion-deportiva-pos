@@ -38,7 +38,7 @@ const App: React.FC = () => {
   const path = window.location.pathname;
 
   // Root domains that should default to the store/catalog
-  const STORE_DOMAINS = ['nutriciondeportivaistmo.com', 'www.nutriciondeportivaistmo.com'];
+  const STORE_DOMAINS = ['tienda.nutriciondeportivaistmo.com'];
   
   // Logic to determine if we should show the public catalog
   const isPublicCatalog = 
