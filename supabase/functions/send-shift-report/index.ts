@@ -75,61 +75,59 @@ Deno.serve(async (req) => {
                          (Number(shift.card_returns) || 0) + 
                          (Number(shift.transfer_returns) || 0);
 
-    // 5. Configuración de WhatsApp (Evolution API)
-    const sendWhatsApp = async (shiftData: any, totals: number) => {
-      const apiUrl = Deno.env.get('EVOLUTION_API_URL');
-      const instance = Deno.env.get('EVOLUTION_INSTANCE');
-      const apiKey = Deno.env.get('EVOLUTION_API_KEY');
-      const adminPhone = Deno.env.get('ADMIN_WHATSAPP');
+    // 5. Envío de WhatsApp via Evolution API
+    let whatsappResult: any = null;
+    try {
+      const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
+      const evolutionInstance = Deno.env.get('EVOLUTION_INSTANCE');
+      const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
+      const adminWhatsapp = Deno.env.get('ADMIN_WHATSAPP');
 
-      if (!apiUrl || !instance || !apiKey || !adminPhone) {
-        console.log('Faltan configuraciones de Evolution API para enviar WhatsApp');
-        return;
-      }
-
-      const mensaje = `📊 CORTE DE CAJA
-Caja: ${shiftData.register?.name || 'Principal'}
-Cajero: ${shiftData.user?.name || 'Sistema'}
+      if (evolutionUrl && evolutionInstance && evolutionApiKey && adminWhatsapp) {
+        const mensaje = `📊 CORTE DE CAJA
+Caja: ${shift.register?.name || 'Principal'}
+Cajero: ${shift.user?.name || 'Sistema'}
 Fecha: ${dateStr}
-Hora: ${new Date(shiftData.closed_at).toLocaleTimeString('es-MX')}
+Hora: ${new Date(shift.closed_at).toLocaleTimeString('es-MX')}
 
-Ventas totales: ${formatCurrency(shiftData.total_sales)}
-Utilidad real: ${formatCurrency(shiftData.real_profit)}
-Gastos: ${formatCurrency(shiftData.total_expenses)}
-Devoluciones: ${formatCurrency(totals)}
+Ventas totales: ${formatCurrency(shift.total_sales)}
+Utilidad real: ${formatCurrency(shift.real_profit)}
+Gastos: ${formatCurrency(shift.total_expenses)}
+Devoluciones: ${formatCurrency(totalReturns)}
 
-Efectivo esperado: ${formatCurrency(shiftData.expected_cash)}
-Efectivo real: ${formatCurrency(shiftData.closing_cash)}
-Diferencia: ${shiftData.difference > 0 ? '+' : ''}${formatCurrency(shiftData.difference)}
+Efectivo esperado: ${formatCurrency(shift.expected_cash)}
+Efectivo real: ${formatCurrency(shift.closing_cash)}
+Diferencia: ${shift.difference > 0 ? '+' : ''}${formatCurrency(shift.difference)}
 
-Observaciones: ${shiftData.notes || 'Ninguna'}`;
+Observaciones: ${shift.notes || 'Ninguna'}`;
 
-      try {
-        const response = await fetch(`${apiUrl}/message/sendText/${instance}`, {
+        const response = await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': apiKey,
+            'apikey': evolutionApiKey,
           },
           body: JSON.stringify({
-            number: adminPhone,
+            number: adminWhatsapp,
             text: mensaje,
           }),
         });
 
+        whatsappResult = await response.json();
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Error al enviar WhatsApp vía Evolution API:', errorData);
+          console.error('Error al enviar WhatsApp vía Evolution API:', whatsappResult);
         } else {
           console.log('WhatsApp enviado correctamente al administrador');
         }
-      } catch (waError) {
-        console.error('Excepción al intentar enviar WhatsApp:', waError);
+      } else {
+        console.log('Faltan configuraciones de Evolution API para enviar WhatsApp');
+        whatsappResult = { success: false, error: 'Configuración incompleta' };
       }
-    };
-
-    // Llamamos a la función de WhatsApp después de preparar los datos
-    await sendWhatsApp(shift, totalReturns);
+    } catch (waError: any) {
+      console.error('Excepción al intentar enviar WhatsApp:', waError);
+      whatsappResult = { success: false, error: waError.message };
+    }
 
     // 6. Generar HTML Profesional
     const htmlContent = `
@@ -312,7 +310,8 @@ Observaciones: ${shiftData.notes || 'Ninguna'}`;
     return new Response(JSON.stringify({ 
       success: status === 'success', 
       message: status === 'success' ? 'Correo enviado correctamente' : errorMessage,
-      resendData: resData
+      resendData: resData,
+      whatsappResult: whatsappResult
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
