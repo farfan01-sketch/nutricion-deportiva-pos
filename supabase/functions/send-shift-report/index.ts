@@ -75,7 +75,63 @@ Deno.serve(async (req) => {
                          (Number(shift.card_returns) || 0) + 
                          (Number(shift.transfer_returns) || 0);
 
-    // 5. Generar HTML Profesional
+    // 5. Configuración de WhatsApp (Evolution API)
+    const sendWhatsApp = async (shiftData: any, totals: number) => {
+      const apiUrl = Deno.env.get('EVOLUTION_API_URL');
+      const instance = Deno.env.get('EVOLUTION_INSTANCE');
+      const apiKey = Deno.env.get('EVOLUTION_API_KEY');
+      const adminPhone = Deno.env.get('ADMIN_WHATSAPP');
+
+      if (!apiUrl || !instance || !apiKey || !adminPhone) {
+        console.log('Faltan configuraciones de Evolution API para enviar WhatsApp');
+        return;
+      }
+
+      const mensaje = `📊 CORTE DE CAJA
+Caja: ${shiftData.register?.name || 'Principal'}
+Cajero: ${shiftData.user?.name || 'Sistema'}
+Fecha: ${dateStr}
+Hora: ${new Date(shiftData.closed_at).toLocaleTimeString('es-MX')}
+
+Ventas totales: ${formatCurrency(shiftData.total_sales)}
+Utilidad real: ${formatCurrency(shiftData.real_profit)}
+Gastos: ${formatCurrency(shiftData.total_expenses)}
+Devoluciones: ${formatCurrency(totals)}
+
+Efectivo esperado: ${formatCurrency(shiftData.expected_cash)}
+Efectivo real: ${formatCurrency(shiftData.closing_cash)}
+Diferencia: ${shiftData.difference > 0 ? '+' : ''}${formatCurrency(shiftData.difference)}
+
+Observaciones: ${shiftData.notes || 'Ninguna'}`;
+
+      try {
+        const response = await fetch(`${apiUrl}/message/sendText/${instance}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': apiKey,
+          },
+          body: JSON.stringify({
+            number: adminPhone,
+            text: mensaje,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error al enviar WhatsApp vía Evolution API:', errorData);
+        } else {
+          console.log('WhatsApp enviado correctamente al administrador');
+        }
+      } catch (waError) {
+        console.error('Excepción al intentar enviar WhatsApp:', waError);
+      }
+    };
+
+    // Llamamos a la función de WhatsApp después de preparar los datos
+    await sendWhatsApp(shift, totalReturns);
+
+    // 6. Generar HTML Profesional
     const htmlContent = `
       <!DOCTYPE html>
       <html>
