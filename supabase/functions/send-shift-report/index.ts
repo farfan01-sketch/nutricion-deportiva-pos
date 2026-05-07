@@ -147,6 +147,9 @@ Deno.serve(async (req) => {
 ⚖️ Diferencia: ${formatCurrency(shift.difference)}`;
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const waRes = await fetch(
           `${evolutionUrl}/message/sendText/${evolutionInstance}`,
           {
@@ -159,8 +162,11 @@ Deno.serve(async (req) => {
               number: adminWhatsapp,
               text: mensaje,
             }),
+            signal: controller.signal,
           },
         );
+
+        clearTimeout(timeoutId);
 
         const waData = await waRes.json();
         // Agregamos status "sent" si la respuesta es exitosa para que el cliente lo reconozca
