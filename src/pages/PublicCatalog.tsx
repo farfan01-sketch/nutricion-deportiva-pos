@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Search, Package, Check, X, Phone, MapPin, User, MessageSquare, ArrowRight } from 'lucide-react';
 import { Product } from '../types';
 import { catalogService } from '../services/catalog';
+import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/format';
 
 interface CartItem {
@@ -90,13 +91,33 @@ const PublicCatalog: React.FC = () => {
         price: item.product.price_retail
       }));
 
-      await catalogService.createOrder({
+      const newOrder = await catalogService.createOrder({
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_address: customerAddress,
         notes: notes,
         total: cartTotal
       }, orderItems);
+
+      // Enviar notificaciones WhatsApp (no bloquea el flujo si falla)
+      try {
+        await supabase.functions.invoke('send-order-whatsapp', {
+          body: {
+            orderId: newOrder.id,
+            customerName,
+            customerPhone,
+            customerAddress,
+            items: cart.map(item => ({
+              name: item.product.name,
+              quantity: item.quantity,
+              price: item.product.price_retail
+            })),
+            total: cartTotal
+          }
+        });
+      } catch (waErr) {
+        console.error('Error al enviar notificaciones de WhatsApp:', waErr);
+      }
 
       setOrderSuccess(true);
       setCart([]);
