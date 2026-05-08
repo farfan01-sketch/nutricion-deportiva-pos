@@ -109,41 +109,11 @@ const Shifts: React.FC<ShiftsProps> = ({ user, register }) => {
       loadData();
       
       if (emailStatus) {
-        const emailOk = !!emailStatus.emailResult?.id;
-        let whatsappOk = false;
-
-        try {
-          const parsed = typeof emailStatus.whatsappResult === "string"
-            ? JSON.parse(emailStatus.whatsappResult)
-            : emailStatus.whatsappResult;
-
-          console.log("WhatsApp parsed:", parsed);
-
-          if (
-            parsed &&
-            (
-              parsed.status === "queued" ||
-              parsed.status === "sent" ||
-              parsed.status === "delivered"
-            )
-          ) {
-            whatsappOk = true;
-          }
-        } catch (e) {
-          console.error("Error parsing whatsappResult:", e);
-        }
-
-        let message = "";
-        if (emailOk && whatsappOk) {
-          message = "Turno cerrado correctamente. Correo y WhatsApp enviados.";
-        } else if (emailOk && !whatsappOk) {
-          message = "Turno cerrado correctamente. Correo enviado, pero WhatsApp no pudo enviarse.";
-        } else if (!emailOk && whatsappOk) {
-          message = "Turno cerrado correctamente. WhatsApp enviado, pero el correo no pudo enviarse.";
+        if (emailStatus.success) {
+          alert("Turno cerrado correctamente. Notificaciones enviadas.");
         } else {
-          message = "Turno cerrado correctamente, pero no se pudieron enviar las notificaciones.";
+          alert("Turno cerrado correctamente, pero no se pudieron enviar las notificaciones.");
         }
-        alert(message);
       } else {
         alert('Turno cerrado correctamente.');
       }

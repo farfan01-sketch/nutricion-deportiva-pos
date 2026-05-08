@@ -65,7 +65,7 @@ export const settingsService = {
       return { 
         success: data?.success ?? true, 
         message: data?.message || 'Notificaciones procesadas',
-        emailResult: data?.emailResult,
+        emailResult: data?.emailResult || data?.resendData,
         whatsappResult: whatsappResult,
         error: data?.error,
         detail: data?.detail
