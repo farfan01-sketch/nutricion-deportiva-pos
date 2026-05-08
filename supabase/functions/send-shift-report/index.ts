@@ -98,7 +98,11 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    let emailResult: any = null;
+    // 1. Enviar Correo con Resend (Prioridad)
+    let resData: any = null;
+    let status = "error";
+    let errorMessage: string | null = null;
+    let resendId: string | null = null;
 
     if (recipientEmails.length > 0 && RESEND_API_KEY) {
       try {
@@ -116,14 +120,38 @@ Deno.serve(async (req) => {
           }),
         });
 
-        emailResult = await emailRes.json();
+        resData = await emailRes.json();
+
+        if (emailRes.ok) {
+          status = "success";
+          resendId = resData.id;
+          console.log("Correo enviado correctamente", resendId);
+        } else {
+          errorMessage = resData.message || "Error desconocido en Resend";
+        }
       } catch (err: any) {
-        console.error("Error enviando email:", err);
-        emailResult = { error: err.message };
+        console.error("Error sending email:", err);
+        errorMessage = err.message;
       }
+    } else {
+      errorMessage = "No hay correos destinatarios o falta API Key de Resend";
     }
 
-    // WhatsApp Evolution API
+    // 2. Registrar Log de Correo
+    try {
+      await supabaseAdmin.from("shift_email_logs").insert({
+        shift_id: shiftId,
+        recipients: recipientEmails,
+        subject: subject,
+        status: status,
+        error_message: errorMessage,
+        resend_id: resendId,
+      });
+    } catch (logErr) {
+      console.error("Error guardando log de correo:", logErr);
+    }
+
+    // 3. Enviar WhatsApp via Evolution API (Opcional, no bloquea)
     const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
     const evolutionInstance = Deno.env.get("EVOLUTION_INSTANCE");
     const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY");
@@ -169,11 +197,12 @@ Deno.serve(async (req) => {
         clearTimeout(timeoutId);
 
         const waData = await waRes.json();
-        // Agregamos status "sent" si la respuesta es exitosa para que el cliente lo reconozca
         whatsappResult = { ...waData, status: waRes.ok ? "sent" : "error" };
         
         if (!waRes.ok) {
-          console.error("Error al enviar WhatsApp vía Evolution API:", waData);
+          console.error("Error al enviar WhatsApp vía Evolution API:", whatsappResult);
+        } else {
+          console.log("WhatsApp enviado correctamente al administrador");
         }
       } catch (waError: any) {
         console.error("Excepción al intentar enviar WhatsApp:", waError);
@@ -183,8 +212,9 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: true,
-        emailResult,
+        success: status === "success",
+        message: status === "success" ? "Correo enviado correctamente" : errorMessage,
+        resendData: resData,
         whatsappResult,
       }),
       {
