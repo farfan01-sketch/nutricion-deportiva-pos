@@ -153,7 +153,7 @@ const PublicCatalog: React.FC = () => {
   if (orderSuccess) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-50 rounded-3xl shadow-xl p-8 text-center space-y-6">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center space-y-6">
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto">
             <Check size={40} />
           </div>
@@ -212,7 +212,7 @@ const PublicCatalog: React.FC = () => {
             placeholder="Buscar productos, marcas o categorías..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all text-slate-700"
+            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all text-slate-700"
           />
         </div>
       </div>
@@ -231,7 +231,7 @@ const PublicCatalog: React.FC = () => {
                   onClick={() => setSelectedCategory(cat)}
                   className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-xl hover:border-primary-200 transition-all group overflow-hidden text-left"
                 >
-                  <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center text-slate-200">
+                  <div className="w-full aspect-[16/10] bg-white rounded-2xl border border-slate-100 overflow-hidden flex items-center justify-center text-slate-200">
                     {firstImage ? (
                       <img 
                         src={firstImage} 
@@ -291,7 +291,7 @@ const PublicCatalog: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredProducts.map(product => (
                 <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col group">
-                  <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                  <div className="aspect-square bg-white relative overflow-hidden">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
@@ -338,7 +338,7 @@ const PublicCatalog: React.FC = () => {
 
             {filteredProducts.length === 0 && (
               <div className="py-20 text-center space-y-4">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mx-auto">
+                <div className="w-20 h-20 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-300 mx-auto">
                   <Search size={40} />
                 </div>
                 <p className="text-slate-500 font-medium">No encontramos productos que coincidan.</p>
@@ -387,14 +387,14 @@ const PublicCatalog: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
-                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                  <div className="w-20 h-20 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-200">
                     <ShoppingCart size={40} />
                   </div>
                   <p className="text-slate-500">Tu carrito está vacío.</p>
                 </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.product.id} className="flex gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div key={item.product.id} className="flex gap-4 p-3 bg-white rounded-2xl border border-slate-100">
                     <div className="w-16 h-16 bg-white rounded-xl overflow-hidden shadow-sm shrink-0">
                       {item.product.image_url ? (
                         <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -440,7 +440,7 @@ const PublicCatalog: React.FC = () => {
             </div>
 
             {cart.length > 0 && (
-              <div className="p-6 bg-slate-50 border-t border-slate-100 space-y-4">
+              <div className="p-6 bg-white border-t border-slate-100 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500 font-medium">Total del Pedido:</span>
                   <span className="text-2xl font-black text-slate-900">{formatCurrency(cartTotal)}</span>
@@ -470,7 +470,7 @@ const PublicCatalog: React.FC = () => {
               <X size={20} />
             </button>
             
-            <div className="w-full md:w-1/2 bg-slate-100 flex items-center justify-center overflow-hidden">
+            <div className="w-full md:w-1/2 bg-white flex items-center justify-center overflow-hidden border-r border-slate-100">
               {selectedProductForDetail.image_url ? (
                 <img 
                   src={selectedProductForDetail.image_url} 
@@ -489,7 +489,7 @@ const PublicCatalog: React.FC = () => {
                   <p className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-1">{selectedProductForDetail.brand}</p>
                   <h2 className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">{selectedProductForDetail.name}</h2>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 uppercase">
+                    <span className="px-2.5 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-bold text-slate-600 uppercase">
                       {selectedProductForDetail.category}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">
@@ -550,7 +550,7 @@ const PublicCatalog: React.FC = () => {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Ej. Juan Pérez"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -565,7 +565,7 @@ const PublicCatalog: React.FC = () => {
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="Ej. 1234567890"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -579,7 +579,7 @@ const PublicCatalog: React.FC = () => {
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     placeholder="Calle, número, colonia..."
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -593,7 +593,7 @@ const PublicCatalog: React.FC = () => {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Ej. Entregar después de las 5pm..."
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none"
+                    className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none"
                   />
                 </div>
               </div>

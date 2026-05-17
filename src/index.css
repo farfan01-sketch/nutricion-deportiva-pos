@@ -41,6 +41,10 @@
   @apply bg-slate-400;
 }
 
+html, body {
+  @apply bg-white;
+}
+
 @media print {
   .no-print {
     display: none !important;
