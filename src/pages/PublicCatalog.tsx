@@ -141,7 +141,7 @@ const PublicCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
           <p className="text-slate-500 font-medium">Cargando catálogo...</p>
@@ -152,8 +152,8 @@ const PublicCatalog: React.FC = () => {
 
   if (orderSuccess) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center space-y-6">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-50 rounded-3xl shadow-xl p-8 text-center space-y-6">
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto">
             <Check size={40} />
           </div>
@@ -175,7 +175,7 @@ const PublicCatalog: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-white pb-24">
       {/* Header */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -212,7 +212,7 @@ const PublicCatalog: React.FC = () => {
             placeholder="Buscar productos, marcas o categorías..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all text-slate-700"
+            className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all text-slate-700"
           />
         </div>
       </div>
