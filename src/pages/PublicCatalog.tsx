@@ -18,6 +18,7 @@ const PublicCatalog: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
   
   // Checkout form
@@ -312,14 +313,23 @@ const PublicCatalog: React.FC = () => {
                     <p className="text-[10px] font-bold text-primary-600 uppercase tracking-wider mb-1">{product.brand}</p>
                     <h3 className="text-sm font-bold text-slate-900 line-clamp-2 mb-2 flex-1">{product.name}</h3>
                     
-                    <div className="flex items-center justify-between mt-auto pt-2">
+                    <div className="flex items-center justify-between mt-auto pt-2 gap-2">
                       <span className="text-lg font-black text-slate-900">{formatCurrency(product.price_retail)}</span>
-                      <button
-                        onClick={() => addToCart(product)}
-                        className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 transition-all shadow-md active:scale-95"
-                      >
-                        <ShoppingCart size={18} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedProductForDetail(product)}
+                          className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95"
+                          title="Ver detalles"
+                        >
+                          <MessageSquare size={18} />
+                        </button>
+                        <button
+                          onClick={() => addToCart(product)}
+                          className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 transition-all shadow-md active:scale-95"
+                        >
+                          <ShoppingCart size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -444,6 +454,75 @@ const PublicCatalog: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Product Detail Modal */}
+      {selectedProductForDetail && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedProductForDetail(null)} />
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col md:flex-row max-h-[90vh]">
+            <button 
+              onClick={() => setSelectedProductForDetail(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-900 shadow-sm hover:bg-white transition-all"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="w-full md:w-1/2 bg-slate-100 flex items-center justify-center overflow-hidden">
+              {selectedProductForDetail.image_url ? (
+                <img 
+                  src={selectedProductForDetail.image_url} 
+                  alt={selectedProductForDetail.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <Package size={80} className="text-slate-300" />
+              )}
+            </div>
+            
+            <div className="w-full md:w-1/2 p-8 flex flex-col overflow-y-auto">
+              <div className="space-y-4 flex-1">
+                <div>
+                  <p className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-1">{selectedProductForDetail.brand}</p>
+                  <h2 className="text-2xl font-black text-slate-900 leading-tight uppercase tracking-tight">{selectedProductForDetail.name}</h2>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 uppercase">
+                      {selectedProductForDetail.category}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                      SKU: {selectedProductForDetail.code}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="py-4 border-y border-slate-100">
+                  <p className="text-3xl font-black text-slate-900">{formatCurrency(selectedProductForDetail.price_retail)}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Descripción</h4>
+                  <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                    {selectedProductForDetail.description || 'Este producto no tiene una descripción detallada todavía.'}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    addToCart(selectedProductForDetail);
+                    setSelectedProductForDetail(null);
+                  }}
+                  className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-primary-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  <ShoppingCart size={20} />
+                  Agregar al Carrito
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

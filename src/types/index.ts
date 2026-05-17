@@ -22,6 +22,7 @@ export interface Product {
   stock: number;
   stock_min: number;
   image_url?: string;
+  description?: string;
   created_at: string;
 }
 
