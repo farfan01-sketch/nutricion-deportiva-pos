@@ -14,6 +14,7 @@ const PublicCatalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -73,11 +74,17 @@ const PublicCatalog: React.FC = () => {
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.price_retail * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.brand.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const categories = Array.from(new Set(products.map(p => p.category))).sort();
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.brand.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase());
+    
+    if (search) return matchesSearch;
+    if (selectedCategory) return matchesSearch && p.category === selectedCategory;
+    return false;
+  });
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,54 +216,127 @@ const PublicCatalog: React.FC = () => {
         </div>
       </div>
 
-      {/* Product Grid */}
-      <div className="px-4 max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredProducts.map(product => (
-          <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col group">
-            <div className="aspect-square bg-slate-100 relative overflow-hidden">
-              {product.image_url ? (
-                <img 
-                  src={product.image_url} 
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                  <Package size={48} />
-                </div>
-              )}
-              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-slate-600 shadow-sm">
-                {product.category}
-              </div>
-            </div>
-            
-            <div className="p-4 flex-1 flex flex-col">
-              <p className="text-[10px] font-bold text-primary-600 uppercase tracking-wider mb-1">{product.brand}</p>
-              <h3 className="text-sm font-bold text-slate-900 line-clamp-2 mb-2 flex-1">{product.name}</h3>
+      {/* Category Selection / Product Grid */}
+      <div className="px-4 max-w-5xl mx-auto">
+        {!selectedCategory && !search ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {categories.map(cat => {
+              const catProducts = products.filter(p => p.category === cat);
+              const firstImage = catProducts.find(p => p.image_url)?.image_url;
               
-              <div className="flex items-center justify-between mt-auto pt-2">
-                <span className="text-lg font-black text-slate-900">{formatCurrency(product.price_retail)}</span>
+              return (
                 <button
-                  onClick={() => addToCart(product)}
-                  className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 transition-all shadow-md active:scale-95"
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-xl hover:border-primary-200 transition-all group overflow-hidden text-left"
                 >
-                  <ShoppingCart size={18} />
+                  <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center text-slate-200">
+                    {firstImage ? (
+                      <img 
+                        src={firstImage} 
+                        alt={cat} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <Package size={48} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                  </div>
+                  <div className="px-2 pb-2">
+                    <h3 className="font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight text-lg leading-tight">{cat}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{catProducts.length} productos disponibles</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {!search && (
+              <div className="flex items-center justify-between">
+                <button 
+                  onClick={() => setSelectedCategory(null)}
+                  className="group flex items-center gap-2 text-slate-900 font-black text-sm uppercase tracking-tighter"
+                >
+                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
+                    <ArrowRight className="rotate-180" size={16} />
+                  </div>
+                  Volver a categorías
+                </button>
+                <div className="bg-primary-50 px-4 py-1.5 rounded-full text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] border border-primary-100">
+                  {selectedCategory}
+                </div>
+              </div>
+            )}
+
+            {search && (
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Resultados para: <span className="text-slate-900">"{search}"</span>
+                </p>
+                <button 
+                  onClick={() => setSearch('')}
+                  className="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:underline"
+                >
+                  Limpiar búsqueda
                 </button>
               </div>
+            )}
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredProducts.map(product => (
+                <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col group">
+                  <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                    {product.image_url ? (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <Package size={48} />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-slate-600 shadow-sm">
+                      {product.category}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 flex-1 flex flex-col">
+                    <p className="text-[10px] font-bold text-primary-600 uppercase tracking-wider mb-1">{product.brand}</p>
+                    <h3 className="text-sm font-bold text-slate-900 line-clamp-2 mb-2 flex-1">{product.name}</h3>
+                    
+                    <div className="flex items-center justify-between mt-auto pt-2">
+                      <span className="text-lg font-black text-slate-900">{formatCurrency(product.price_retail)}</span>
+                      <button
+                        onClick={() => addToCart(product)}
+                        className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 transition-all shadow-md active:scale-95"
+                      >
+                        <ShoppingCart size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
 
-      {filteredProducts.length === 0 && (
-        <div className="py-20 text-center space-y-4">
-          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mx-auto">
-            <Search size={40} />
+            {filteredProducts.length === 0 && (
+              <div className="py-20 text-center space-y-4">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mx-auto">
+                  <Search size={40} />
+                </div>
+                <p className="text-slate-500 font-medium">No encontramos productos que coincidan.</p>
+              </div>
+            )}
           </div>
-          <p className="text-slate-500 font-medium">No encontramos productos que coincidan.</p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Floating Cart Button (Mobile) */}
       {cartCount > 0 && !isCartOpen && (
