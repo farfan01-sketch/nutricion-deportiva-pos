@@ -41,7 +41,8 @@
   @apply bg-slate-400;
 }
 
-html, body {
+html, body, #root, main {
+  background-color: white !important;
   @apply bg-white;
 }
 

@@ -175,7 +175,7 @@ const PublicCatalog: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-white pb-24" style={{ backgroundColor: '#ffffff' }}>
       {/* Header */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-30 px-4 py-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -242,7 +242,6 @@ const PublicCatalog: React.FC = () => {
                     ) : (
                       <Package size={48} />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                   </div>
                   <div className="px-2 pb-2">
                     <h3 className="font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight text-lg leading-tight">{cat}</h3>
@@ -263,7 +262,7 @@ const PublicCatalog: React.FC = () => {
                   onClick={() => setSelectedCategory(null)}
                   className="group flex items-center gap-2 text-slate-900 font-black text-sm uppercase tracking-tighter"
                 >
-                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
+                  <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
                     <ArrowRight className="rotate-180" size={16} />
                   </div>
                   Volver a categorías
@@ -318,7 +317,7 @@ const PublicCatalog: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setSelectedProductForDetail(product)}
-                          className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95"
+                          className="w-10 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95"
                           title="Ver detalles"
                         >
                           <MessageSquare size={18} />
@@ -379,7 +378,7 @@ const PublicCatalog: React.FC = () => {
                 <ShoppingCart size={24} className="text-primary-600" />
                 Tu Pedido
               </h2>
-              <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-50 rounded-full border border-transparent hover:border-slate-100">
                 <X size={24} className="text-slate-400" />
               </button>
             </div>
@@ -465,7 +464,7 @@ const PublicCatalog: React.FC = () => {
           <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col md:flex-row max-h-[90vh]">
             <button 
               onClick={() => setSelectedProductForDetail(null)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-900 shadow-sm hover:bg-white transition-all"
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-900 shadow-sm hover:bg-white transition-all border border-slate-200"
             >
               <X size={20} />
             </button>
@@ -534,7 +533,7 @@ const PublicCatalog: React.FC = () => {
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">Datos del Pedido</h2>
-              <button onClick={() => setIsCheckoutOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setIsCheckoutOpen(false)} className="p-2 hover:bg-slate-50 rounded-full border border-transparent hover:border-slate-100">
                 <X size={24} className="text-slate-400" />
               </button>
             </div>
