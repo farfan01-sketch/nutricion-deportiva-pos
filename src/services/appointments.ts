@@ -153,17 +153,15 @@ export const appointmentService = {
       throw new Error('No se pudo registrar la cita. Esto puede deberse a políticas de seguridad (RLS).');
     }
 
-    // Send confirmation if WhatsApp is enabled and auto-confirm is expected, or just general booking notify
+    // Send confirmation
     try {
-      const settings = await this.getSettings();
-      if (settings.whatsapp_enabled) {
-        await notificationService.notify(
-          data,
-          data.service?.name || 'Asesoría Nutricional',
-          'create',
-          settings
-        );
-      }
+      const settings = await this.getSettings().catch(() => null);
+      await notificationService.notify(
+        data,
+        data.service?.name || 'Asesoría Nutricional',
+        'create',
+        settings
+      );
     } catch (e) {
       console.error('Error sending WhatsApp creation notification:', e);
     }
@@ -186,23 +184,21 @@ export const appointmentService = {
 
     // Send notifications based on status change
     try {
-      const settings = await this.getSettings();
-      if (settings.whatsapp_enabled) {
-        if (status === 'confirmed') {
-          await notificationService.notify(
-            data,
-            data.service?.name || 'Sesión',
-            'confirm',
-            settings
-          );
-        } else if (status === 'cancelled') {
-          await notificationService.notify(
-            data,
-            data.service?.name || 'Sesión',
-            'cancel',
-            settings
-          );
-        }
+      const settings = await this.getSettings().catch(() => null);
+      if (status === 'confirmed') {
+        await notificationService.notify(
+          data,
+          data.service?.name || 'Sesión',
+          'confirm',
+          settings
+        );
+      } else if (status === 'cancelled') {
+        await notificationService.notify(
+          data,
+          data.service?.name || 'Sesión',
+          'cancel',
+          settings
+        );
       }
     } catch (e) {
       console.error('Error sending status update notification via WhatsApp:', e);
@@ -227,18 +223,13 @@ export const appointmentService = {
   },
 
   async sendReminder(appointment: Appointment): Promise<boolean> {
-    try {
-      const settings = await this.getSettings();
-      return await notificationService.notify(
-        appointment,
-        appointment.service?.name || 'Sesión',
-        'remind',
-        settings
-      );
-    } catch (err) {
-      console.error('Error triggered during manual WhatsApp reminder dispatch:', err);
-      return false;
-    }
+    const settings = await this.getSettings().catch(() => null);
+    return await notificationService.notify(
+      appointment,
+      appointment.service?.name || 'Sesión',
+      'remind',
+      settings
+    );
   },
 
   async deleteAppointment(id: string): Promise<void> {

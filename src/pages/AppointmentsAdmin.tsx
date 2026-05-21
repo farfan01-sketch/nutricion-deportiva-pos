@@ -178,11 +178,12 @@ const AppointmentsAdmin: React.FC = () => {
       if (res) {
         alert(`¡Recordatorio enviado exitosamente a ${appt.client_name}!`);
       } else {
-        alert('No se pudo enviar el recordatorio. Verifica que WhatsApp esté habilitado en la pestaña Ajustes y las claves de Evolution API sean válidas.');
+        alert('No se pudo enviar el recordatorio por WhatsApp.');
       }
     } catch (err) {
       console.error('Error dispatching WhatsApp reminder:', err);
-      alert('Error al enviar el recordatorio.');
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido.';
+      alert(`Error al enviar el recordatorio de WhatsApp:\n${errorMsg}`);
     }
   };
 

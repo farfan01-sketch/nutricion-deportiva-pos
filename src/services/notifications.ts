@@ -26,15 +26,10 @@ export const notificationService = {
    * Envía un mensaje de texto plano usando la Cloud/Edge Function send-order-whatsapp
    */
   async sendWhatsAppMessage(
-    settings: AppointmentSettings,
+    _settings: AppointmentSettings | null | undefined,
     phoneNumber: string,
     messageText: string
   ): Promise<boolean> {
-    if (!settings.whatsapp_enabled) {
-      console.log('WhatsApp notifications are disabled by settings.');
-      return false;
-    }
-
     try {
       const { data, error } = await supabase.functions.invoke('send-order-whatsapp', {
         body: {
@@ -45,15 +40,18 @@ export const notificationService = {
       });
 
       if (error) {
-        console.error('Error resorting to Edge Function for direct message:', error);
-        return false;
+        console.error('Error invoking send-order-whatsapp for direct message:', error);
+        throw new Error(error.message || JSON.stringify(error));
       }
 
       console.log('Direct notification dispatched through Edge Function ✅', data);
+      if (data && data.success === false) {
+        throw new Error(data.error || 'La función Edge devolvió un error al intentar enviar.');
+      }
       return data?.success ?? true;
     } catch (err) {
       console.error('Failed to dispatch direct notification to Edge Function:', err);
-      return false;
+      throw err;
     }
   },
 
@@ -64,10 +62,8 @@ export const notificationService = {
     appointment: Appointment,
     serviceName: string,
     type: 'create' | 'confirm' | 'cancel' | 'remind',
-    settings: AppointmentSettings
+    settings?: AppointmentSettings | null
   ): Promise<boolean> {
-    if (!settings || !settings.whatsapp_enabled) return false;
-
     // Formatear fecha legible (DD/MM/YYYY)
     let formattedDate = appointment.appointment_date;
     try {
@@ -99,17 +95,17 @@ export const notificationService = {
     } 
     else if (type === 'confirm') {
       // 3. Al confirmar, mensaje al cliente
-      const confirmTemplate = settings.whatsapp_template_confirmation || 'Hola {{cliente}}, tu cita para {{servicio}} ha sido confirmada para el día {{fecha}} a las {{hora}}. Te esperamos en Nutrición Deportiva Istmo.';
+      const confirmTemplate = settings?.whatsapp_template_confirmation || 'Hola {{cliente}}, tu cita para {{servicio}} ha sido confirmada para el día {{fecha}} a las {{hora}}. Te esperamos en Nutrición Deportiva Istmo.';
       clientMessage = this.interpolateTemplate(confirmTemplate, data);
     } 
     else if (type === 'cancel') {
       // 4. Al cancelar
-      const cancelTemplate = settings.whatsapp_template_cancellation || 'Hola {{cliente}}, le informamos que su cita para {{servicio}} el día {{fecha}} a las {{hora}} ha sido cancelada.';
+      const cancelTemplate = settings?.whatsapp_template_cancellation || 'Hola {{cliente}}, le informamos que su cita para {{servicio}} el día {{fecha}} a las {{hora}} ha sido cancelada.';
       clientMessage = this.interpolateTemplate(cancelTemplate, data);
     } 
     else if (type === 'remind') {
       // 5. Recordatorio
-      const remindTemplate = settings.whatsapp_template_reminder || 'Recordatorio: Su cita para {{servicio}} es el día {{fecha}} a las {{hora}}.';
+      const remindTemplate = settings?.whatsapp_template_reminder || 'Recordatorio: Su cita para {{servicio}} es el día {{fecha}} a las {{hora}}.';
       clientMessage = this.interpolateTemplate(remindTemplate, data);
     }
 
@@ -138,14 +134,21 @@ export const notificationService = {
 
       if (error) {
         console.error('Error invoking send-order-whatsapp for appointment event:', error);
-        return false;
+        throw new Error(error.message || JSON.stringify(error));
       }
 
       console.log('Notification sent successfully through Edge Function ✅', resData);
-      return resData?.success ?? true;
+      
+      if (!resData || resData.success === false) {
+        const errMsg = resData?.error || 'Respuesta de función Edge indica fallo en el envío de WhatsApp.';
+        console.error('Edge Function failed to send message:', errMsg, resData);
+        throw new Error(errMsg);
+      }
+
+      return true;
     } catch (err) {
       console.error('Failed to dispatch notification to Edge Function:', err);
-      return false;
+      throw err;
     }
   }
 };
