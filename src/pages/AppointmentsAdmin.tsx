@@ -699,40 +699,10 @@ const AppointmentsAdmin: React.FC = () => {
 
               {settings.whatsapp_enabled ? (
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Evolution API Webhook (Host)</label>
-                    <input
-                      required
-                      type="text"
-                      value={settings.evolution_api_url || ''}
-                      onChange={(e) => setSettings({ ...settings, evolution_api_url: e.target.value })}
-                      placeholder="https://api.domain.com"
-                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-slate-700 text-xs outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ApiKey / apikey</label>
-                      <input
-                        required
-                        type="password"
-                        value={settings.evolution_api_key || ''}
-                        onChange={(e) => setSettings({ ...settings, evolution_api_key: e.target.value })}
-                        placeholder="••••••••••••••••"
-                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-slate-700 text-xs outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instancia ID</label>
-                      <input
-                        required
-                        type="text"
-                        value={settings.evolution_api_instance || ''}
-                        onChange={(e) => setSettings({ ...settings, evolution_api_instance: e.target.value })}
-                        placeholder="NDPOS_Citas"
-                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-slate-700 text-xs outline-none"
-                      />
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-2 text-[10.5px] text-emerald-800 font-medium leading-relaxed mb-1">
+                    <Check size={15} className="shrink-0 text-emerald-500 mt-0.5" />
+                    <div>
+                      <strong>¡Configuración Automática Integrada!</strong> El módulo de citas reutiliza automáticamente y de forma segura la misma instancia, número, URL y clave de <strong>Evolution API</strong> de tu tienda. No necesitas ingresar credenciales.
                     </div>
                   </div>
 

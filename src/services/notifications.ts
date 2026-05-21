@@ -1,27 +1,29 @@
+import { supabase } from '../lib/supabase';
 import { Appointment, AppointmentSettings } from '../types/appointments';
 
-// Helper de Evolution API de WhatsApp
+// Helper de Evolution API de WhatsApp que reutiliza la función Edge existente de Supabase
 export const notificationService = {
   /**
    * Reemplaza variables en una plantilla de mensaje
    */
   interpolateTemplate(
     template: string,
-    data: { clientName: string; serviceName: string; date: string; time: string }
+    data: { clientName: string; clientPhone?: string; serviceName: string; date: string; time: string }
   ): string {
     return template
       .replace(/{{cliente}}/g, data.clientName)
+      .replace(/{{telefono}}/g, data.clientPhone || '')
       .replace(/{{service}}/g, data.serviceName)
-      .replace(/{{date}}/g, data.date)
-      .replace(/{{time}}/g, data.time)
-      .replace(/{{client}}/g, data.clientName)
       .replace(/{{servicio}}/g, data.serviceName)
+      .replace(/{{date}}/g, data.date)
       .replace(/{{fecha}}/g, data.date)
-      .replace(/{{hora}}/g, data.time);
+      .replace(/{{time}}/g, data.time)
+      .replace(/{{hora}}/g, data.time)
+      .replace(/{{client}}/g, data.clientName);
   },
 
   /**
-   * Envía un mensaje de texto plano usando la Evolution API de WhatsApp configurada
+   * Envía un mensaje de texto plano usando la Cloud/Edge Function send-order-whatsapp
    */
   async sendWhatsAppMessage(
     settings: AppointmentSettings,
@@ -33,54 +35,24 @@ export const notificationService = {
       return false;
     }
 
-    const { evolution_api_url, evolution_api_key, evolution_api_instance } = settings;
-
-    if (!evolution_api_url || !evolution_api_key || !evolution_api_instance) {
-      console.warn('⚠️ Evolution API details are incomplete. URL:', evolution_api_url, 'Instance:', evolution_api_instance);
-      return false;
-    }
-
     try {
-      // Limpiar el número telefónico para formato internacional
-      // Por ejemplo, quitar caracteres y espacios, y garantizar que tenga código de país.
-      let cleanPhone = phoneNumber.replace(/\D/g, '');
-      if (cleanPhone.length === 10) {
-        // En México, agregar código de país 52 por defecto (521 + número para WhatsApp o 52)
-        cleanPhone = '52' + cleanPhone;
-      }
-
-      // La url suele terminar en / o no. Corregir formato.
-      const baseUrl = evolution_api_url.endsWith('/') ? evolution_api_url : evolution_api_url + '/';
-      const endpoint = `${baseUrl}message/sendText/${evolution_api_instance}`;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': evolution_api_key,
-        },
-        body: JSON.stringify({
-          number: cleanPhone,
-          options: {
-            delay: 1200,
-            presence: 'composing',
-            linkPreview: false,
-          },
-          text: messageText,
-        }),
+      const { data, error } = await supabase.functions.invoke('send-order-whatsapp', {
+        body: {
+          type: 'appointment_direct',
+          clientPhone: phoneNumber,
+          clientMessage: messageText
+        }
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error('Error response from Evolution API:', errText);
+      if (error) {
+        console.error('Error resorting to Edge Function for direct message:', error);
         return false;
       }
 
-      const resData = await response.json();
-      console.log('Notification sent successfully through Evolution API ✅', resData);
-      return true;
+      console.log('Direct notification dispatched through Edge Function ✅', data);
+      return data?.success ?? true;
     } catch (err) {
-      console.error('Failed to dispatch notification to Evolution API:', err);
+      console.error('Failed to dispatch direct notification to Edge Function:', err);
       return false;
     }
   },
@@ -96,26 +68,7 @@ export const notificationService = {
   ): Promise<boolean> {
     if (!settings || !settings.whatsapp_enabled) return false;
 
-    let template = '';
-    switch (type) {
-      case 'create':
-        // Notificación de creación (pendiente por ahora o confirmada según prefiera el POS)
-        template = settings.whatsapp_template_confirmation || '¡Hola! Su cita para {{service}} está confirmada para el día {{date}} a las {{time}}.';
-        break;
-      case 'confirm':
-        template = settings.whatsapp_template_confirmation || '¡Hola! Su cita para {{service}} está confirmada para el día {{date}} a las {{time}}.';
-        break;
-      case 'cancel':
-        template = settings.whatsapp_template_cancellation || 'Hola, le informamos que su cita para {{service}} el día {{date}} a las {{time}} ha sido cancelada.';
-        break;
-      case 'remind':
-        template = settings.whatsapp_template_reminder || 'Recordatorio: Su cita para {{service}} es el día {{date}} a las {{time}}.';
-        break;
-    }
-
-    if (!template) return false;
-
-    // Formatear fecha legible
+    // Formatear fecha legible (DD/MM/YYYY)
     let formattedDate = appointment.appointment_date;
     try {
       const parts = appointment.appointment_date.split('-');
@@ -124,14 +77,64 @@ export const notificationService = {
       }
     } catch (_) {}
 
-    const message = this.interpolateTemplate(template, {
+    const data = {
       clientName: appointment.client_name,
+      clientPhone: appointment.client_phone,
       serviceName: serviceName,
       date: formattedDate,
       time: appointment.appointment_time,
-    });
+    };
 
-    console.log(`Sending WhatsApp (${type}) message to ${appointment.client_phone}: ${message}`);
-    return this.sendWhatsAppMessage(settings, appointment.client_phone, message);
+    let clientMessage = '';
+    let adminMessage = '';
+
+    if (type === 'create') {
+      // 1. Al agendar, mensaje al cliente
+      const clientTemplate = 'Hola {{cliente}}, recibimos tu solicitud de cita para {{servicio}} el día {{fecha}} a las {{hora}}. En breve confirmaremos tu cita. Nutrición Deportiva Istmo.';
+      clientMessage = this.interpolateTemplate(clientTemplate, data);
+
+      // 2. Al agendar, mensaje al administrador
+      const adminTemplate = 'Nueva cita agendada: {{cliente}} - {{telefono}} - {{servicio}} - {{fecha}} {{hora}}.';
+      adminMessage = this.interpolateTemplate(adminTemplate, data);
+    } 
+    else if (type === 'confirm') {
+      // 3. Al confirmar, mensaje al cliente
+      const confirmTemplate = settings.whatsapp_template_confirmation || 'Hola {{cliente}}, tu cita para {{servicio}} ha sido confirmada para el día {{fecha}} a las {{hora}}. Te esperamos en Nutrición Deportiva Istmo.';
+      clientMessage = this.interpolateTemplate(confirmTemplate, data);
+    } 
+    else if (type === 'cancel') {
+      // 4. Al cancelar
+      const cancelTemplate = settings.whatsapp_template_cancellation || 'Hola {{cliente}}, le informamos que su cita para {{servicio}} el día {{fecha}} a las {{hora}} ha sido cancelada.';
+      clientMessage = this.interpolateTemplate(cancelTemplate, data);
+    } 
+    else if (type === 'remind') {
+      // 5. Recordatorio
+      const remindTemplate = settings.whatsapp_template_reminder || 'Recordatorio: Su cita para {{servicio}} es el día {{fecha}} a las {{hora}}.';
+      clientMessage = this.interpolateTemplate(remindTemplate, data);
+    }
+
+    try {
+      console.log(`Sending WhatsApp (${type}) message through Edge Function. Client phone: ${appointment.client_phone}`);
+      
+      const { data: resData, error } = await supabase.functions.invoke('send-order-whatsapp', {
+        body: {
+          type: `appointment_${type}`,
+          clientPhone: appointment.client_phone,
+          clientMessage: clientMessage || undefined,
+          adminMessage: adminMessage || undefined
+        }
+      });
+
+      if (error) {
+        console.error('Error invoking send-order-whatsapp for appointment event:', error);
+        return false;
+      }
+
+      console.log('Notification sent successfully through Edge Function ✅', resData);
+      return resData?.success ?? true;
+    } catch (err) {
+      console.error('Failed to dispatch notification to Edge Function:', err);
+      return false;
+    }
   }
 };

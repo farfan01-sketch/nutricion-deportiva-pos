@@ -15,17 +15,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { orderId, customerName, customerPhone, customerAddress, items, total } = await req.json();
-
-    if (!orderId) {
-      return new Response(
-        JSON.stringify({ success: false, error: "orderId es requerido" }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+    const body = await req.json();
+    const { 
+      type,
+      clientPhone,
+      clientMessage,
+      adminMessage,
+      
+      orderId, 
+      customerName, 
+      customerPhone, 
+      customerAddress, 
+      items, 
+      total 
+    } = body;
 
     const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
     const evolutionInstance = Deno.env.get("EVOLUTION_INSTANCE");
@@ -43,59 +46,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    const formatCurrency = (amount: number) =>
-      new Intl.NumberFormat("es-MX", {
-        style: "currency",
-        currency: "MXN",
-      }).format(Number(amount || 0));
-
     const formatPhoneNumber = (phone: string) => {
       const cleaned = phone.replace(/\D/g, "");
       if (cleaned.length === 10) {
         return "521" + cleaned;
       }
       if (cleaned.startsWith("52") && cleaned.length === 12) {
-        return cleaned; // Should it be 521? Usually 521 for mobile in Mexico Evolution API
+        return "521" + cleaned.substring(2);
       }
-      if (cleaned.startsWith("52") && cleaned.length === 13 && cleaned[2] === '1') {
-        return cleaned; // Already has 521
-      }
-      // If it starts with 52 but is 12 chars, add the 1 if it's typical mobile
-      if (cleaned.startsWith("52") && cleaned.length === 12) {
-          return "521" + cleaned.substring(2);
+      if (cleaned.startsWith("52") && cleaned.length === 13 && cleaned[3] === '1') {
+        return cleaned; 
       }
       return cleaned;
     };
-
-    const clientNumber = formatPhoneNumber(customerPhone);
-    const adminNumber = formatPhoneNumber(adminWhatsapp);
-
-    const itemsSummary = items
-      .map((item: any) => `- ${item.quantity}x ${item.name} (${formatCurrency(item.price)})`)
-      .join("\n");
-
-    const clientMsg = `Hola ${customerName}, gracias por tu pedido en Nutrición Deportiva Istmo.
-
-Pedido: #${orderId}
-Productos:
-${itemsSummary}
-
-Total: ${formatCurrency(total)}
-
-Tu pedido fue recibido. En breve te contactaremos para confirmar pago y entrega.`;
-
-    const adminMsg = `🛒 NUEVO PEDIDO EN LÍNEA
-
-Cliente: ${customerName}
-Teléfono: ${customerPhone}
-Dirección: ${customerAddress}
-
-Productos:
-${itemsSummary}
-
-Total: ${formatCurrency(total)}
-
-Dar seguimiento por WhatsApp.`;
 
     const sendWhatsApp = async (number: string, text: string) => {
       const controller = new AbortController();
@@ -131,6 +94,89 @@ Dar seguimiento por WhatsApp.`;
         return { ok: false, error: err.message };
       }
     };
+
+    // Si es una cita
+    if (type?.startsWith('appointment') || clientMessage || adminMessage) {
+      const clientNumber = clientPhone ? formatPhoneNumber(clientPhone) : null;
+      const adminNumber = formatPhoneNumber(adminWhatsapp);
+
+      const promises = [];
+      let clientRes = { ok: true, data: "No client msg" };
+      let adminRes = { ok: true, data: "No admin msg" };
+
+      if (clientNumber && clientMessage) {
+        clientRes = await sendWhatsApp(clientNumber, clientMessage);
+      }
+      if (adminMessage) {
+        adminRes = await sendWhatsApp(adminNumber, adminMessage);
+      }
+
+      if (clientNumber && clientMessage && !clientRes.ok) {
+        console.error("Error WhatsApp Cliente:", clientRes.data);
+      }
+      if (adminMessage && !adminRes.ok) {
+        console.error("Error WhatsApp Administrador:", adminRes.data);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          clientWhatsappSent: clientNumber && clientMessage ? clientRes.ok : false,
+          adminWhatsappSent: adminMessage ? adminRes.ok : false,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Flujo normal de pedidos de tienda
+    if (!orderId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "orderId o type de cita es requerido" }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const formatCurrency = (amount: number) =>
+      new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: "MXN",
+      }).format(Number(amount || 0));
+
+    const clientNumber = customerPhone ? formatPhoneNumber(customerPhone) : "";
+    const adminNumber = formatPhoneNumber(adminWhatsapp);
+
+    const itemsSummary = (items || [])
+      .map((item: any) => `- ${item.quantity}x ${item.name} (${formatCurrency(item.price)})`)
+      .join("\n");
+
+    const clientMsg = `Hola ${customerName}, gracias por tu pedido en Nutrición Deportiva Istmo.
+
+Pedido: #${orderId}
+Productos:
+${itemsSummary}
+
+Total: ${formatCurrency(total)}
+
+Tu pedido fue recibido. En breve te contactaremos para confirmar pago y entrega.`;
+
+    const adminMsg = `🛒 NUEVO PEDIDO EN LÍNEA
+
+Cliente: ${customerName}
+Teléfono: ${customerPhone}
+Dirección: ${customerAddress}
+
+Productos:
+${itemsSummary}
+
+Total: ${formatCurrency(total)}
+
+Dar seguimiento por WhatsApp.`;
 
     // Send messages in parallel (or sequential, but parallel is better for speed)
     const [clientRes, adminRes] = await Promise.all([
