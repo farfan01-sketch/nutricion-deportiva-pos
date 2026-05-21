@@ -18,11 +18,16 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { 
       type,
+      notificationType,
       clientPhone,
       clientName,
       serviceName,
       date,
       time,
+      appointmentDate,
+      appointmentTime,
+      appointmentId,
+      notifyAdmin,
       clientMessage,
       adminMessage,
       
@@ -42,7 +47,7 @@ Deno.serve(async (req) => {
     if (!evolutionUrl || !evolutionInstance || !evolutionApiKey || !adminWhatsapp) {
       console.error("Faltan variables de entorno de Evolution API");
       return new Response(
-        JSON.stringify({ success: false, error: "Configuración incompleta de Evolution API envariables" }),
+        JSON.stringify({ success: false, error: "Configuración incompleta de Evolution API env variables" }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -99,33 +104,80 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Si es una cita
-    const isAppointment = type?.startsWith('appointment') || clientMessage || adminMessage;
+    // Si es una cita (or request matches appointment keys)
+    const resolvedType = type || notificationType || "";
+    const isAppointment = 
+      resolvedType.startsWith('appointment') || 
+      resolvedType.startsWith('notification') || 
+      !!appointmentId ||
+      !!appointmentDate ||
+      !!clientMessage || 
+      !!adminMessage;
+
     if (isAppointment) {
-      const clientNumber = clientPhone ? formatPhoneNumber(clientPhone) : null;
+      const actualPhone = clientPhone || customerPhone;
+      const actualName = clientName || customerName;
+      const actualDate = appointmentDate || date || "";
+      const actualTime = appointmentTime || time || "";
+
+      if (!actualPhone) {
+        return new Response(
+          JSON.stringify({ success: false, error: "clientPhone (o teléfono del cliente) es requerido para citas" }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const clientNumber = formatPhoneNumber(actualPhone);
       const adminNumber = formatPhoneNumber(adminWhatsapp);
 
       let computedClientMsg = clientMessage;
       let computedAdminMsg = adminMessage;
 
       // Generar mensajes automáticos según especificación si vienen tipados
-      if (type === 'appointment/new') {
-        const cName = clientName || "Cliente";
+      if (resolvedType === 'appointment_new' || resolvedType === 'appointment/new') {
+        const cName = actualName || "Cliente";
         const sName = serviceName || "Asesoría Cita";
-        const aDate = date || "";
-        const aTime = time || "";
-        const cPhone = clientPhone || "";
+        const aDate = actualDate || "";
+        const aTime = actualTime || "";
+        const cPhone = actualPhone || "";
 
-        computedClientMsg = `Hola ${cName}, recibimos tu solicitud de cita para ${sName} el día ${aDate} a las ${aTime}. En breve confirmaremos tu cita. Nutrición Deportiva Istmo.`;
-        computedAdminMsg = `Nueva cita agendada: ${cName} - ${cPhone} - ${sName} - ${aDate} ${aTime}.`;
-      } else if (type === 'appointment/confirm' || type === 'appointment/confirmation') {
-        const cName = clientName || "Cliente";
+        if (!computedClientMsg) {
+          computedClientMsg = `Hola ${cName}, recibimos tu solicitud de cita para ${sName} el día ${aDate} a las ${aTime}. En breve confirmaremos tu cita. Nutrición Deportiva Istmo.`;
+        }
+        if (!computedAdminMsg && notifyAdmin !== false) {
+          computedAdminMsg = `Nueva cita agendada: ${cName} - ${cPhone} - ${sName} - ${aDate} ${aTime}.`;
+        }
+      } else if (resolvedType === 'appointment_confirmed' || resolvedType === 'appointment/confirm' || resolvedType === 'appointment/confirmation') {
+        const cName = actualName || "Cliente";
         const sName = serviceName || "Asesoría Cita";
-        const aDate = date || "";
-        const aTime = time || "";
+        const aDate = actualDate || "";
+        const aTime = actualTime || "";
 
-        computedClientMsg = `Hola ${cName}, tu cita para ${sName} ha sido confirmada para el día ${aDate} a las ${aTime}. Te esperamos en Nutrición Deportiva Istmo.`;
-        computedAdminMsg = undefined; // No se requiere avisar al administrador que él mismo confirmó la cita
+        if (!computedClientMsg) {
+          computedClientMsg = `Hola ${cName}, tu cita para ${sName} ha sido confirmada para el día ${aDate} a las ${aTime}. Te esperamos en Nutrición Deportiva Istmo.`;
+        }
+        computedAdminMsg = undefined; // No se requiere avisar al administrador para confirmaciones manuales
+      } else if (resolvedType === 'appointment_remind') {
+        const cName = actualName || "Cliente";
+        const sName = serviceName || "Asesoría Cita";
+        const aDate = actualDate || "";
+        const aTime = actualTime || "";
+
+        if (!computedClientMsg) {
+          computedClientMsg = `Recordatorio: Su cita para ${sName} es el día ${aDate} a las ${aTime}.`;
+        }
+      } else if (resolvedType === 'appointment_cancelled') {
+        const cName = actualName || "Cliente";
+        const sName = serviceName || "Asesoría Cita";
+        const aDate = actualDate || "";
+        const aTime = actualTime || "";
+
+        if (!computedClientMsg) {
+          computedClientMsg = `Hola ${cName}, le informamos que su cita para ${sName} el día ${aDate} a las ${aTime} ha sido cancelada.`;
+        }
       }
 
       let clientRes = { ok: true, data: "No client msg" };
@@ -149,7 +201,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          success: true,
+          success: clientRes.ok && adminRes.ok,
           clientWhatsappSent: clientNumber && computedClientMsg ? clientRes.ok : false,
           adminWhatsappSent: computedAdminMsg ? adminRes.ok : false,
           clientDetails: clientRes,

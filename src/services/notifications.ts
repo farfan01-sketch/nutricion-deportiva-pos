@@ -111,9 +111,13 @@ export const notificationService = {
 
     let payloadType = `appointment_${type}`;
     if (type === 'create') {
-      payloadType = 'appointment/new';
+      payloadType = 'appointment_new';
     } else if (type === 'confirm') {
-      payloadType = 'appointment/confirm';
+      payloadType = 'appointment_confirmed';
+    } else if (type === 'remind') {
+      payloadType = 'appointment_remind';
+    } else if (type === 'cancel') {
+      payloadType = 'appointment_cancelled';
     }
 
     try {
@@ -122,13 +126,15 @@ export const notificationService = {
       const { data: resData, error } = await supabase.functions.invoke('send-order-whatsapp', {
         body: {
           type: payloadType,
+          appointmentId: appointment.id,
           clientPhone: appointment.client_phone,
           clientName: appointment.client_name,
           serviceName: serviceName,
-          date: formattedDate,
-          time: appointment.appointment_time,
+          appointmentDate: formattedDate,
+          appointmentTime: appointment.appointment_time,
           clientMessage: clientMessage || undefined,
-          adminMessage: adminMessage || undefined
+          adminMessage: adminMessage || undefined,
+          notifyAdmin: type === 'create'
         }
       });
 
@@ -137,10 +143,25 @@ export const notificationService = {
         throw new Error(error.message || JSON.stringify(error));
       }
 
-      console.log('Notification sent successfully through Edge Function ✅', resData);
+      console.log('Notification response from Edge Function:', resData);
       
       if (!resData || resData.success === false) {
-        const errMsg = resData?.error || 'Respuesta de función Edge indica fallo en el envío de WhatsApp.';
+        let errMsg = resData?.error || '';
+        if (resData?.clientDetails && !resData.clientDetails.ok) {
+          const detail = typeof resData.clientDetails.data === 'object'
+            ? JSON.stringify(resData.clientDetails.data)
+            : resData.clientDetails.data || resData.clientDetails.error;
+          errMsg += ` (WhatsApp Cliente: ${detail})`;
+        }
+        if (resData?.adminDetails && !resData.adminDetails.ok) {
+          const detail = typeof resData.adminDetails.data === 'object'
+            ? JSON.stringify(resData.adminDetails.data)
+            : resData.adminDetails.data || resData.adminDetails.error;
+          errMsg += ` (WhatsApp Administrador: ${detail})`;
+        }
+        if (!errMsg) {
+          errMsg = 'Respuesta de función Edge indica fallo en el envío de WhatsApp.';
+        }
         console.error('Edge Function failed to send message:', errMsg, resData);
         throw new Error(errMsg);
       }
