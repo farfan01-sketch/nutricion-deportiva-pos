@@ -22,9 +22,12 @@ export const appointmentService = {
       .from('appointment_services')
       .insert([service])
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se pudo crear el servicio. Verifique los permisos RLS.');
+    }
     return data;
   },
 
@@ -34,9 +37,12 @@ export const appointmentService = {
       .update(service)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se encontró el servicio o no tienes permisos RLS para actualizarlo.');
+    }
     return data;
   },
 
@@ -84,9 +90,12 @@ export const appointmentService = {
       .update(settings)
       .eq('id', 'general')
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se pudo actualizar la configuración general de citas.');
+    }
     return data;
   },
 
@@ -138,9 +147,12 @@ export const appointmentService = {
       .from('appointments')
       .insert([appointment])
       .select('*, service:appointment_services(*)')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se pudo registrar la cita. Esto puede deberse a políticas de seguridad (RLS).');
+    }
 
     // Send confirmation if WhatsApp is enabled and auto-confirm is expected, or just general booking notify
     try {
@@ -166,9 +178,12 @@ export const appointmentService = {
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('*, service:appointment_services(*)')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se encontró la cita con el ID especificado para actualizar su estado. Verifique si el ID es correcto o si hay restricciones de permisos (RLS).');
+    }
 
     // Send notifications based on status change
     try {
@@ -203,9 +218,12 @@ export const appointmentService = {
       .update({ ...appointment, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('*, service:appointment_services(*)')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se encontró la cita especificada o no tienes permisos (RLS) para actualizarla.');
+    }
     return data;
   },
 

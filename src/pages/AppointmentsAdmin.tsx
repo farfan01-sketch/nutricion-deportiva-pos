@@ -166,7 +166,8 @@ const AppointmentsAdmin: React.FC = () => {
       setAppointments(allAppts);
     } catch (err) {
       console.error('Error changing appointment status:', err);
-      alert('No se pudo actualizar el estado de la cita.');
+      const errorMsg = err instanceof Error ? err.message : 'No se pudo actualizar el estado de la cita.';
+      alert(`Error al actualizar la cita:\n${errorMsg}`);
     }
   };
 
