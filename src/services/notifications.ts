@@ -113,13 +113,24 @@ export const notificationService = {
       clientMessage = this.interpolateTemplate(remindTemplate, data);
     }
 
+    let payloadType = `appointment_${type}`;
+    if (type === 'create') {
+      payloadType = 'appointment/new';
+    } else if (type === 'confirm') {
+      payloadType = 'appointment/confirm';
+    }
+
     try {
-      console.log(`Sending WhatsApp (${type}) message through Edge Function. Client phone: ${appointment.client_phone}`);
+      console.log(`Sending WhatsApp (${payloadType}) message through Edge Function. Client phone: ${appointment.client_phone}`);
       
       const { data: resData, error } = await supabase.functions.invoke('send-order-whatsapp', {
         body: {
-          type: `appointment_${type}`,
+          type: payloadType,
           clientPhone: appointment.client_phone,
+          clientName: appointment.client_name,
+          serviceName: serviceName,
+          date: formattedDate,
+          time: appointment.appointment_time,
           clientMessage: clientMessage || undefined,
           adminMessage: adminMessage || undefined
         }

@@ -87,14 +87,13 @@ export const appointmentService = {
   async updateSettings(settings: Partial<AppointmentSettings>): Promise<AppointmentSettings> {
     const { data, error } = await supabase
       .from('appointment_settings')
-      .update(settings)
-      .eq('id', 'general')
+      .upsert({ id: 'general', ...settings })
       .select()
       .maybeSingle();
 
     if (error) throw error;
     if (!data) {
-      throw new Error('No se pudo actualizar la configuración general de citas.');
+      throw new Error('No se pudo guardar la configuración general de citas.');
     }
     return data;
   },

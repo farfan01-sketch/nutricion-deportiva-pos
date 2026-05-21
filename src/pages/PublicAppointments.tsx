@@ -641,7 +641,30 @@ const PublicAppointments: React.FC = () => {
                   Agendar otra cita
                 </button>
                 <a
-                  href={`https://wa.me/${successAppointment.client_phone.replace(/\D/g, '')}}`}
+                  href={(() => {
+                    const formatApptDate = () => {
+                      if (!successAppointment?.appointment_date) return '';
+                      try {
+                        const parts = successAppointment.appointment_date.split('-');
+                        if (parts.length === 3) {
+                          return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+                        }
+                      } catch (_) {}
+                      return successAppointment.appointment_date;
+                    };
+                    const clientNameText = successAppointment?.client_name || '';
+                    const serviceNameText = successAppointment?.service?.name || selectedService?.name || 'Asesoría Nutricional';
+                    const apptDateText = formatApptDate();
+                    const apptTimeText = successAppointment?.appointment_time || '';
+
+                    const textMsg = `Hola, quiero confirmar mi cita:
+Cliente: ${clientNameText}
+Servicio: ${serviceNameText}
+Fecha: ${apptDateText}
+Hora: ${apptTimeText}`;
+
+                    return `https://wa.me/529711451907?text=${encodeURIComponent(textMsg)}`;
+                  })()}
                   target="_blank"
                   rel="noreferrer"
                   className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"

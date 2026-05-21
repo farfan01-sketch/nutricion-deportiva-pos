@@ -19,6 +19,10 @@ Deno.serve(async (req) => {
     const { 
       type,
       clientPhone,
+      clientName,
+      serviceName,
+      date,
+      time,
       clientMessage,
       adminMessage,
       
@@ -38,7 +42,7 @@ Deno.serve(async (req) => {
     if (!evolutionUrl || !evolutionInstance || !evolutionApiKey || !adminWhatsapp) {
       console.error("Faltan variables de entorno de Evolution API");
       return new Response(
-        JSON.stringify({ success: false, error: "Configuración incompleta" }),
+        JSON.stringify({ success: false, error: "Configuración incompleta de Evolution API envariables" }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,7 +58,7 @@ Deno.serve(async (req) => {
       if (cleaned.startsWith("52") && cleaned.length === 12) {
         return "521" + cleaned.substring(2);
       }
-      if (cleaned.startsWith("52") && cleaned.length === 13 && cleaned[3] === '1') {
+      if (cleaned.startsWith("52") && cleaned.length === 13 && cleaned[2] === '1') {
         return cleaned; 
       }
       return cleaned;
@@ -96,33 +100,60 @@ Deno.serve(async (req) => {
     };
 
     // Si es una cita
-    if (type?.startsWith('appointment') || clientMessage || adminMessage) {
+    const isAppointment = type?.startsWith('appointment') || clientMessage || adminMessage;
+    if (isAppointment) {
       const clientNumber = clientPhone ? formatPhoneNumber(clientPhone) : null;
       const adminNumber = formatPhoneNumber(adminWhatsapp);
 
-      const promises = [];
+      let computedClientMsg = clientMessage;
+      let computedAdminMsg = adminMessage;
+
+      // Generar mensajes automáticos según especificación si vienen tipados
+      if (type === 'appointment/new') {
+        const cName = clientName || "Cliente";
+        const sName = serviceName || "Asesoría Cita";
+        const aDate = date || "";
+        const aTime = time || "";
+        const cPhone = clientPhone || "";
+
+        computedClientMsg = `Hola ${cName}, recibimos tu solicitud de cita para ${sName} el día ${aDate} a las ${aTime}. En breve confirmaremos tu cita. Nutrición Deportiva Istmo.`;
+        computedAdminMsg = `Nueva cita agendada: ${cName} - ${cPhone} - ${sName} - ${aDate} ${aTime}.`;
+      } else if (type === 'appointment/confirm' || type === 'appointment/confirmation') {
+        const cName = clientName || "Cliente";
+        const sName = serviceName || "Asesoría Cita";
+        const aDate = date || "";
+        const aTime = time || "";
+
+        computedClientMsg = `Hola ${cName}, tu cita para ${sName} ha sido confirmada para el día ${aDate} a las ${aTime}. Te esperamos en Nutrición Deportiva Istmo.`;
+        computedAdminMsg = undefined; // No se requiere avisar al administrador que él mismo confirmó la cita
+      }
+
       let clientRes = { ok: true, data: "No client msg" };
       let adminRes = { ok: true, data: "No admin msg" };
 
-      if (clientNumber && clientMessage) {
-        clientRes = await sendWhatsApp(clientNumber, clientMessage);
+      if (clientNumber && computedClientMsg) {
+        console.log(`Enviando WhatsApp al cliente (${clientNumber}): ${computedClientMsg}`);
+        clientRes = await sendWhatsApp(clientNumber, computedClientMsg);
       }
-      if (adminMessage) {
-        adminRes = await sendWhatsApp(adminNumber, adminMessage);
+      if (computedAdminMsg) {
+        console.log(`Enviando WhatsApp al administrador (${adminNumber}): ${computedAdminMsg}`);
+        adminRes = await sendWhatsApp(adminNumber, computedAdminMsg);
       }
 
-      if (clientNumber && clientMessage && !clientRes.ok) {
-        console.error("Error WhatsApp Cliente:", clientRes.data);
+      if (clientNumber && computedClientMsg && !clientRes.ok) {
+        console.error("Error WhatsApp Cliente:", clientRes.data || clientRes);
       }
-      if (adminMessage && !adminRes.ok) {
-        console.error("Error WhatsApp Administrador:", adminRes.data);
+      if (computedAdminMsg && !adminRes.ok) {
+        console.error("Error WhatsApp Administrador:", adminRes.data || adminRes);
       }
 
       return new Response(
         JSON.stringify({
           success: true,
-          clientWhatsappSent: clientNumber && clientMessage ? clientRes.ok : false,
-          adminWhatsappSent: adminMessage ? adminRes.ok : false,
+          clientWhatsappSent: clientNumber && computedClientMsg ? clientRes.ok : false,
+          adminWhatsappSent: computedAdminMsg ? adminRes.ok : false,
+          clientDetails: clientRes,
+          adminDetails: adminRes
         }),
         {
           status: 200,
