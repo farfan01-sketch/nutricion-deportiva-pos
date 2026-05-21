@@ -20,6 +20,8 @@ import Settings from './pages/Settings';
 import SalesHistory from './pages/SalesHistory';
 import PublicCatalog from './pages/PublicCatalog';
 import CatalogOrders from './pages/CatalogOrders';
+import PublicAppointments from './pages/PublicAppointments';
+import AppointmentsAdmin from './pages/AppointmentsAdmin';
 import { shiftService } from './services/shifts';
 import LogoutWithShiftModal from './components/auth/LogoutWithShiftModal';
 import AdminGuard from './components/auth/AdminGuard';
@@ -39,12 +41,21 @@ const App: React.FC = () => {
 
   // Root domains that should default to the store/catalog
   const STORE_DOMAINS = ['tienda.nutriciondeportivaistmo.com'];
+  // Subdomains for scheduling / appointments booking portal
+  const APPOINTMENT_DOMAINS = ['citas.nutriciondeportivaistmo.com'];
   
   // Logic to determine if we should show the public catalog
   const isPublicCatalog = 
     path === '/catalog' || 
     path === '/catalogo' || 
     (STORE_DOMAINS.includes(hostname) && path === '/');
+
+  // Logic to determine if we should show the public appointment scheduling portal
+  const isPublicAppointments =
+    path === '/appointments' ||
+    path === '/citas' ||
+    path === '/agenda' ||
+    (APPOINTMENT_DOMAINS.includes(hostname) && path === '/');
 
   // Logout with shift states
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -148,6 +159,10 @@ const App: React.FC = () => {
     setRequiresShiftOpening(false);
   };
 
+  if (isPublicAppointments) {
+    return <PublicAppointments />;
+  }
+
   if (isPublicCatalog) {
     return <PublicCatalog />;
   }
@@ -207,6 +222,7 @@ const App: React.FC = () => {
           <UsersPage />
         </AdminGuard>
       );
+      case 'appointments': return <AppointmentsAdmin />;
       case 'settings': return (
         <AdminGuard user={user!}>
           <Settings />

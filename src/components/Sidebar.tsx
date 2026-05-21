@@ -14,7 +14,8 @@ import {
   Clock,
   ShoppingBag,
   Monitor,
-  Settings
+  Settings,
+  Calendar
 } from 'lucide-react';
 import { User, PermissionModule } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
@@ -37,6 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentView, onViewChange, onLo
     { id: 'products', label: 'Productos', icon: Package, roles: ['admin', 'staff'], module: 'productos' as PermissionModule },
     { id: 'inventory', label: 'Inventario', icon: BarChart3, roles: ['admin', 'staff'], module: 'inventario' as PermissionModule },
     { id: 'customers', label: 'Clientes', icon: Users, roles: ['admin', 'staff'], module: 'clientes' as PermissionModule },
+    { id: 'appointments', label: 'Agenda Citas', icon: Calendar, roles: ['admin', 'staff'] },
     { id: 'suppliers', label: 'Proveedores', icon: Truck, roles: ['admin'] },
     { id: 'layaways', label: 'Apartados', icon: Receipt, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },
     { id: 'expenses', label: 'Gastos', icon: Wallet, roles: ['admin', 'staff'], module: 'ventas' as PermissionModule },

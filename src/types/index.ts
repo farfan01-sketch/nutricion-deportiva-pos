@@ -379,3 +379,6 @@ export const PERMISSIONS_BY_MODULE: Record<PermissionModule, { id: string; label
     { id: 'ordenes_compra', label: 'Órdenes de Compra' },
   ],
 };
+
+export * from './appointments';
+
