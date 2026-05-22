@@ -105,18 +105,51 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Si es una cita (or request matches appointment keys or doesn't have orderId)
+    // Agregar logs de depuración solicitados
+    console.log("WHATSAPP TYPE:", type);
+    console.log("PAYLOAD:", body);
+
     const resolvedType = type || notificationType || "";
+    const isAppointmentType = 
+      resolvedType === "appointment_new" ||
+      resolvedType === "appointment_confirmed" ||
+      resolvedType === "appointment_remind" ||
+      resolvedType === "appointment_cancelled";
+
     const isAppointment = 
+      isAppointmentType ||
       resolvedType.includes('appointment') || 
       resolvedType.includes('notification') || 
       !!appointmentId ||
       !!appointmentDate ||
-      !orderId ||
       !!clientMessage || 
       !!adminMessage;
 
     if (isAppointment) {
+      if (isAppointmentType) {
+        // Validación obligatoria para citas según especificaciones
+        const missing = [];
+        if (!appointmentId) missing.push("appointmentId");
+        if (!clientPhone) missing.push("clientPhone");
+        if (!clientName) missing.push("clientName");
+        if (!serviceName) missing.push("serviceName");
+        if (!appointmentDate) missing.push("appointmentDate");
+        if (!appointmentTime) missing.push("appointmentTime");
+
+        if (missing.length > 0) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Los siguientes campos son requeridos para citas: ${missing.join(', ')}` 
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+      }
+
       const actualPhone = clientPhone || customerPhone;
       const actualName = clientName || customerName;
       const actualDate = appointmentDate || date || "";
@@ -138,7 +171,7 @@ Deno.serve(async (req) => {
       let computedClientMsg = clientMessage;
       let computedAdminMsg = adminMessage;
 
-      // Generar mensajes automáticos según especificación si vienen tipados
+      // Generar mensajes automáticos según especificación si no vienen predefinidos
       if (resolvedType === 'appointment_new' || resolvedType === 'appointment/new') {
         const cName = actualName || "Cliente";
         const sName = serviceName || "Asesoría Cita";
@@ -161,7 +194,10 @@ Deno.serve(async (req) => {
         if (!computedClientMsg) {
           computedClientMsg = `Hola ${cName}, tu cita para ${sName} ha sido confirmada para el día ${aDate} a las ${aTime}. Te esperamos en Nutrición Deportiva Istmo.`;
         }
-        computedAdminMsg = undefined; // No se requiere avisar al administrador para confirmaciones manuales
+        // Cuando notifyAdmin es true para confirmación, lo mandamos. Si no, no.
+        if (notifyAdmin === true && !computedAdminMsg) {
+          computedAdminMsg = `Cita confirmada: ${cName} - ${sName} - ${aDate} ${aTime}.`;
+        }
       } else if (resolvedType === 'appointment_remind') {
         const cName = actualName || "Cliente";
         const sName = serviceName || "Asesoría Cita";
@@ -170,6 +206,9 @@ Deno.serve(async (req) => {
 
         if (!computedClientMsg) {
           computedClientMsg = `Recordatorio: Su cita para ${sName} es el día ${aDate} a las ${aTime}.`;
+        }
+        if (notifyAdmin === true && !computedAdminMsg) {
+          computedAdminMsg = `Recordatorio de cita enviado a: ${cName} - ${sName} - ${aDate} ${aTime}.`;
         }
       } else if (resolvedType === 'appointment_cancelled') {
         const cName = actualName || "Cliente";
@@ -180,6 +219,9 @@ Deno.serve(async (req) => {
         if (!computedClientMsg) {
           computedClientMsg = `Hola ${cName}, le informamos que su cita para ${sName} el día ${aDate} a las ${aTime} ha sido cancelada.`;
         }
+        if (notifyAdmin === true && !computedAdminMsg) {
+          computedAdminMsg = `Cita cancelada por cliente o sistema: ${cName} - ${sName} - ${aDate} ${aTime}.`;
+        }
       }
 
       let clientRes = { ok: true, data: "No client msg" };
@@ -189,7 +231,7 @@ Deno.serve(async (req) => {
         console.log(`Enviando WhatsApp al cliente (${clientNumber}): ${computedClientMsg}`);
         clientRes = await sendWhatsApp(clientNumber, computedClientMsg);
       }
-      if (computedAdminMsg) {
+      if (computedAdminMsg && (notifyAdmin === true || notifyAdmin === undefined)) {
         console.log(`Enviando WhatsApp al administrador (${adminNumber}): ${computedAdminMsg}`);
         adminRes = await sendWhatsApp(adminNumber, computedAdminMsg);
       }
@@ -203,7 +245,8 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          success: clientRes.ok && adminRes.ok,
+          success: (clientNumber && computedClientMsg ? clientRes.ok : true) && (computedAdminMsg ? adminRes.ok : true),
+          clientPriceSent: false, // Legacy field
           clientWhatsappSent: clientNumber && computedClientMsg ? clientRes.ok : false,
           adminWhatsappSent: computedAdminMsg ? adminRes.ok : false,
           clientDetails: clientRes,
