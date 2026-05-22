@@ -9,7 +9,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   CheckCircle2, 
-  MessageSquare,
   Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -586,7 +585,7 @@ const PublicAppointments: React.FC = () => {
 
               <div className="space-y-2">
                 <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">¡Cita Agendada Exitosamente!</h2>
-                <p className="text-slate-500 text-sm">Tu cita ha sido guardada en nuestro sistema. El equipo administrador confirmará en breve tu horario. ¡Te esperamos!</p>
+                <p className="text-slate-600 text-sm">Recibimos tu solicitud de cita. Te enviaremos la confirmación por WhatsApp.</p>
               </div>
 
               {/* Recibo breve de la cita */}
@@ -622,7 +621,7 @@ const PublicAppointments: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
+              <div className="pt-4 border-t border-slate-100">
                 <button
                   onClick={() => {
                     // Resetear formulario y volver a paso 1
@@ -636,42 +635,10 @@ const PublicAppointments: React.FC = () => {
                     setSuccessAppointment(null);
                     setStep(1);
                   }}
-                  className="flex-1 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all"
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all"
                 >
                   Agendar otra cita
                 </button>
-                <a
-                  href={(() => {
-                    const formatApptDate = () => {
-                      if (!successAppointment?.appointment_date) return '';
-                      try {
-                        const parts = successAppointment.appointment_date.split('-');
-                        if (parts.length === 3) {
-                          return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
-                        }
-                      } catch (_) {}
-                      return successAppointment.appointment_date;
-                    };
-                    const clientNameText = successAppointment?.client_name || '';
-                    const serviceNameText = successAppointment?.service?.name || selectedService?.name || 'Asesoría Nutricional';
-                    const apptDateText = formatApptDate();
-                    const apptTimeText = successAppointment?.appointment_time || '';
-
-                    const textMsg = `Hola, quiero confirmar mi cita:
-Cliente: ${clientNameText}
-Servicio: ${serviceNameText}
-Fecha: ${apptDateText}
-Hora: ${apptTimeText}`;
-
-                    return `https://wa.me/529711451907?text=${encodeURIComponent(textMsg)}`;
-                  })()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
-                >
-                  <MessageSquare size={18} />
-                  Contactar por WhatsApp
-                </a>
               </div>
             </motion.div>
           )}

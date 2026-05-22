@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
+    console.log("send-order-whatsapp received payload:", JSON.stringify(body));
     const { 
       type,
       notificationType,
@@ -104,13 +105,14 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Si es una cita (or request matches appointment keys)
+    // Si es una cita (or request matches appointment keys or doesn't have orderId)
     const resolvedType = type || notificationType || "";
     const isAppointment = 
-      resolvedType.startsWith('appointment') || 
-      resolvedType.startsWith('notification') || 
+      resolvedType.includes('appointment') || 
+      resolvedType.includes('notification') || 
       !!appointmentId ||
       !!appointmentDate ||
+      !orderId ||
       !!clientMessage || 
       !!adminMessage;
 
